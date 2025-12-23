@@ -29,7 +29,7 @@ Use at your own risk for personal/experimental purposes.
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/notebooklm-consumer-mcp.git
+git clone https://github.com/jacob-bd/notebooklm-consumer-mcp.git
 cd notebooklm-consumer-mcp
 
 # Install with uv
