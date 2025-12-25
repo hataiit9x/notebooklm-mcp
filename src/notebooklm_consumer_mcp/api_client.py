@@ -1613,7 +1613,43 @@ class ConsumerNotebookLMClient:
                     if isinstance(video_options, list) and len(video_options) > 3:
                         video_url = video_options[3] if isinstance(video_options[3], str) else None
 
-                artifact_type = "audio" if type_code == self.STUDIO_TYPE_AUDIO else "video" if type_code == self.STUDIO_TYPE_VIDEO else "unknown"
+                # Infographic artifacts have image URL at position 14
+                # Structure: [settings, title, [[title, [url, width, height], desc, text]]]
+                infographic_url = None
+                if type_code == self.STUDIO_TYPE_INFOGRAPHIC and len(artifact_data) > 14:
+                    infographic_options = artifact_data[14]
+                    if isinstance(infographic_options, list) and len(infographic_options) > 2:
+                        # URL is at [2][0][1][0] - image_data[0][1][0]
+                        image_data = infographic_options[2]
+                        if isinstance(image_data, list) and len(image_data) > 0:
+                            first_image = image_data[0]
+                            if isinstance(first_image, list) and len(first_image) > 1:
+                                image_details = first_image[1]
+                                if isinstance(image_details, list) and len(image_details) > 0:
+                                    url = image_details[0]
+                                    if isinstance(url, str) and url.startswith("http"):
+                                        infographic_url = url
+
+                # Slide deck artifacts have download URL at position 16
+                slide_deck_url = None
+                if type_code == self.STUDIO_TYPE_SLIDE_DECK and len(artifact_data) > 16:
+                    slide_deck_options = artifact_data[16]
+                    if isinstance(slide_deck_options, list) and len(slide_deck_options) > 0:
+                        # URL is typically at position 0 in the options
+                        if isinstance(slide_deck_options[0], str) and slide_deck_options[0].startswith("http"):
+                            slide_deck_url = slide_deck_options[0]
+                        # Or may be nested deeper
+                        elif len(slide_deck_options) > 3 and isinstance(slide_deck_options[3], str):
+                            slide_deck_url = slide_deck_options[3]
+
+                # Map type codes to type names
+                type_map = {
+                    self.STUDIO_TYPE_AUDIO: "audio",
+                    self.STUDIO_TYPE_VIDEO: "video",
+                    self.STUDIO_TYPE_INFOGRAPHIC: "infographic",
+                    self.STUDIO_TYPE_SLIDE_DECK: "slide_deck",
+                }
+                artifact_type = type_map.get(type_code, "unknown")
                 status = "in_progress" if status_code == 1 else "completed" if status_code == 3 else "unknown"
 
                 artifacts.append({
@@ -1623,6 +1659,8 @@ class ConsumerNotebookLMClient:
                     "status": status,
                     "audio_url": audio_url,
                     "video_url": video_url,
+                    "infographic_url": infographic_url,
+                    "slide_deck_url": slide_deck_url,
                     "duration_seconds": duration_seconds,
                 })
 

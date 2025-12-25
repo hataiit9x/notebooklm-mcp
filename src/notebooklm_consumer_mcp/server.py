@@ -1131,16 +1131,21 @@ def video_overview_create(
 
 @mcp.tool()
 def studio_status(notebook_id: str) -> dict[str, Any]:
-    """Check the status of audio/video overview generation.
+    """Check the status of studio content generation.
 
-    Call this after audio_overview_create or video_overview_create to check
-    if generation is complete and get URLs to the generated content.
+    Call this after creating any studio content (audio, video, infographic,
+    slide deck) to check if generation is complete and get URLs.
 
     Args:
         notebook_id: The notebook UUID
 
     Returns:
-        Dictionary with list of artifacts and their status/URLs
+        Dictionary with list of artifacts and their status/URLs.
+        Each artifact includes type-specific URL fields:
+        - audio_url: For audio overviews
+        - video_url: For video overviews
+        - infographic_url: For infographics
+        - slide_deck_url: For slide decks
     """
     try:
         client = get_client()
@@ -1171,7 +1176,7 @@ def studio_delete(
     artifact_id: str,
     confirm: bool = False,
 ) -> dict[str, Any]:
-    """Delete a studio artifact (Audio or Video Overview).
+    """Delete a studio artifact (audio, video, infographic, or slide deck).
 
     WARNING: This action is IRREVERSIBLE. The artifact will be permanently deleted.
 
