@@ -745,15 +745,7 @@ class ConsumerNotebookLMClient:
 
         chat_settings = [goal_setting, [length_code]]
         params = [notebook_id, [[None, None, None, None, None, None, None, chat_settings]]]
-
-        body = self._build_request_body(self.RPC_RENAME_NOTEBOOK, params)
-        url = self._build_url(self.RPC_RENAME_NOTEBOOK, f"/notebook/{notebook_id}")
-
-        response = client.post(url, content=body)
-        response.raise_for_status()
-
-        parsed = self._parse_response(response.text)
-        result = self._extract_rpc_result(parsed, self.RPC_RENAME_NOTEBOOK)
+        result = self._call_rpc(self.RPC_RENAME_NOTEBOOK, params, f"/notebook/{notebook_id}")
 
         if result:
             # Response format: [title, null, id, emoji, null, metadata, null, [[goal_code, prompt?], [length_code]]]
