@@ -1,6 +1,6 @@
 # NotebookLM Consumer MCP Server
 
-![NotebookLM MCP Header](docs/media/header.png)
+![NotebookLM MCP Header](docs/media/header.jpeg)
 
 An MCP server for **Consumer NotebookLM** (notebooklm.google.com) - the free/personal tier.
 
