@@ -100,8 +100,16 @@ def launch_chrome(port: int, headless: bool = False) -> bool:
         args.append("--headless=new")
 
     try:
-        subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # Print the command for debugging
+        print(f"Running: {' '.join(args[:3])}...")
+        process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         time.sleep(3)  # Wait for Chrome to start
+
+        # Check if there was an immediate error
+        if process.poll() is not None:
+            _, stderr = process.communicate()
+            if stderr:
+                print(f"Chrome error: {stderr.decode()[:500]}")
         return True
     except Exception as e:
         print(f"Failed to launch Chrome: {e}")
@@ -343,9 +351,6 @@ def run_auth_flow(port: int = CDP_DEFAULT_PORT, auto_launch: bool = True) -> Aut
             print()
             print("  2. Close Chrome completely, then run this command again")
             print()
-            print("  3. Restart Chrome with debugging:")
-            print(f'     /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome --remote-debugging-port={port}')
-            print()
             return None
 
         print("Launching Chrome to check login status...")
@@ -360,16 +365,16 @@ def run_auth_flow(port: int = CDP_DEFAULT_PORT, auto_launch: bool = True) -> Aut
         print("TIP: The easiest option is file mode:")
         print("     notebooklm-consumer-auth --file")
         print()
-        print("Or start Chrome with remote debugging enabled:")
+        print("Or manually start Chrome with debugging (close Chrome first!):")
         print()
+        user_data_dir = get_chrome_user_data_dir() or "~/Library/Application Support/Google/Chrome"
         print("  macOS:")
-        print(f'    /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome --remote-debugging-port={port}')
+        print(f'    /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome \\')
+        print(f'      --remote-debugging-port={port} \\')
+        print(f'      --disable-extensions \\')
+        print(f'      --user-data-dir="{user_data_dir}"')
         print()
-        print("  Linux:")
-        print(f"    google-chrome --remote-debugging-port={port}")
-        print()
-        print("  Windows:")
-        print(f'    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --remote-debugging-port={port}')
+        print("  Then run: notebooklm-consumer-auth")
         print()
         return None
 
