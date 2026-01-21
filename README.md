@@ -154,7 +154,38 @@ For detailed instructions, troubleshooting, and how the authentication system wo
 
 > **⚠️ Context Window Warning:** This MCP provides **31 tools** which consume a significant portion of your context window. It's recommended to **disable the MCP when not actively using NotebookLM** to preserve context for your other work. In Claude Code, use `@notebooklm-mcp` to toggle it on/off, or use `/mcp` command.
 
-No environment variables needed - the MCP uses cached tokens from `~/.notebooklm-mcp/auth.json`.
+> **⚠️ Context Window Warning:** This MCP provides **31 tools** which consume a significant portion of your context window. It's recommended to **disable the MCP when not actively using NotebookLM** to preserve context for your other work. In Claude Code, use `@notebooklm-mcp` to toggle it on/off, or use `/mcp` command.
+ 
+### CLI Options
+
+You can configure the server using command-line arguments:
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--transport`, `-t` | Transport protocol (`stdio`, `http`, `sse`) | `stdio` |
+| `--port`, `-p` | Port for HTTP/SSE transport | `8000` |
+| `--host`, `-H` | Host to bind for HTTP/SSE | `127.0.0.1` |
+| `--debug` | Enable verbose logging (API requests/responses) | `False` |
+| `--query-timeout` | Timeout for queries in seconds | `120.0` |
+
+### Environment Variables
+
+Alternatively, use environment variables:
+
+| Variable | Description |
+|----------|-------------|
+| `NOTEBOOKLM_MCP_TRANSPORT` | Transport type (`stdio`, `http`, `sse`) |
+| `NOTEBOOKLM_MCP_PORT` | Port to listen on |
+| `NOTEBOOKLM_MCP_HOST` | Host to bind |
+| `NOTEBOOKLM_MCP_DEBUG` | `true` to enable debug logging |
+| `NOTEBOOKLM_QUERY_TIMEOUT` | Query timeout in seconds |
+
+### HTTP Support (Open WebUI)
+Run as an HTTP server for remote access or multi-user setups:
+```bash
+notebooklm-mcp --transport http --port 8000
+```
+> See **[docs/MULTI_USER_ANALYSIS.md](docs/MULTI_USER_ANALYSIS.md)** for detailed multi-user deployment guides.
 
 ### Claude Code (Recommended CLI Method)
 
@@ -435,6 +466,13 @@ The goal here was to scratch an itch - programmatic access to NotebookLM - and l
 **This is where you come in.** If you see something that makes you cringe, please consider contributing rather than just closing the tab. This is open source specifically because human expertise is irreplaceable. Whether it's refactoring, better error handling, type hints, or architectural guidance - PRs and issues are welcome.
 
 Think of it as a chance to mentor an AI-assisted developer through code review. We all benefit when experienced developers share their knowledge.
+
+## Credits
+
+Special thanks to:
+- **Le Anh Tuan** ([@latuannetnam](https://github.com/latuannetnam)) for contributing the HTTP transport, debug logging system, and performance optimizations.
+- **David Szabo-Pele** ([@davidszp](https://github.com/davidszp)) for the `source_get_content` tool and Linux auth fixes.
+
 
 ## License
 

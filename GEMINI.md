@@ -78,8 +78,16 @@ uv tool install --force .
 ```
 
 **Running the Server:**
+**Running the Server:**
 ```bash
+# Standard mode (stdio)
 notebooklm-mcp
+
+# Debug mode (verbose logging)
+notebooklm-mcp --debug
+
+# HTTP Server mode
+notebooklm-mcp --transport http --port 8000
 ```
 
 ### Testing
