@@ -105,7 +105,8 @@ def studio_status(
     try:
         notebook_id = get_alias_manager().resolve(notebook_id)
         with get_client(profile) as client:
-            artifacts = client.get_studio_status(notebook_id)
+            # Use poll_studio_status to get the latest status
+            artifacts = client.poll_studio_status(notebook_id)
         
         fmt = detect_output_format(json_output)
         formatter = get_formatter(fmt, console)
@@ -133,7 +134,8 @@ def studio_delete(
     
     try:
         with get_client(profile) as client:
-            client.delete_artifact(notebook_id, artifact_id)
+            # Note: delete_studio_artifact takes (artifact_id, notebook_id) - REVERSED kwargs in client
+            client.delete_studio_artifact(artifact_id, notebook_id=notebook_id)
         
         console.print(f"[green]✓[/green] Deleted artifact: {artifact_id}")
     except NLMError as e:
@@ -184,7 +186,7 @@ def create_audio(
         ) as progress:
             progress.add_task("Creating audio...", total=None)
             with get_client(profile) as client:
-                result = client.create_audio(
+                result = client.create_audio_overview(
                     notebook_id,
                     format=format,
                     length=length,
@@ -361,11 +363,21 @@ def create_mindmap(
         ) as progress:
             progress.add_task("Creating mind map...", total=None)
             with get_client(profile) as client:
-                result = client.create_mindmap(
+                # Two-step process: generate then save
+                gen_result = client.generate_mind_map(
                     notebook_id,
-                    title=title,
                     source_ids=parse_source_ids(source_ids),
                 )
+                
+                # Check if generation was successful and we have a response to save
+                if gen_result and 'response' in gen_result:
+                    result = client.save_mind_map(
+                        notebook_id,
+                        gen_result['response'],
+                        title=title if title else "Mind Map",
+                    )
+                else:
+                    raise NLMError("Failed to generate mind map")
         
         console.print(f"[green]✓[/green] Mind map created")
         if result:
@@ -407,7 +419,7 @@ def create_slides(
         ) as progress:
             progress.add_task("Creating slides...", total=None)
             with get_client(profile) as client:
-                result = client.create_slides(
+                result = client.create_slide_deck(
                     notebook_id,
                     format=format,
                     length=length,
@@ -502,7 +514,7 @@ def create_video(
         ) as progress:
             progress.add_task("Creating video...", total=None)
             with get_client(profile) as client:
-                result = client.create_video(
+                result = client.create_video_overview(
                     notebook_id,
                     format=format,
                     visual_style=style,

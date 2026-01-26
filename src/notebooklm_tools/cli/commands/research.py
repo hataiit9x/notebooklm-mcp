@@ -20,7 +20,19 @@ app = typer.Typer(
 
 def get_client(profile: str | None = None) -> NotebookLMClient:
     """Get a client instance."""
-    return NotebookLMClient(profile=profile)
+    from notebooklm_tools.core.auth import AuthManager
+    
+    manager = AuthManager(profile if profile else "default")
+    if not manager.profile_exists():
+        console.print(f"[red]Error:[/red] Profile '{manager.profile_name}' not found. Run 'nlm login' first.")
+        raise typer.Exit(1)
+        
+    p = manager.load_profile()
+    return NotebookLMClient(
+        cookies=p.cookies,
+        csrf_token=p.csrf_token or "",
+        session_id=p.session_id or "",
+    )
 
 
 @app.command("start")
@@ -163,23 +175,19 @@ def research_status(
             ) as progress:
                 progress.add_task("Waiting for research to complete...", total=None)
                 
+                # Simple polling loop
+                import time
+                elapsed = 0
                 with get_client(profile) as client:
-                    task = client.get_research_status(
-                        notebook_id,
-                        poll_interval=poll_interval,
-                        max_wait=max_wait,
-                        compact=compact,
-                        task_id=task_id,
-                    )
+                    while elapsed < max_wait:
+                        task = client.poll_research(notebook_id, target_task_id=task_id)
+                        if task and task.get('status') == 'completed':
+                            break
+                        time.sleep(poll_interval)
+                        elapsed += poll_interval
         else:
             with get_client(profile) as client:
-                task = client.get_research_status(
-                    notebook_id,
-                    poll_interval=poll_interval,
-                    max_wait=0,
-                    compact=compact,
-                    task_id=task_id,
-                )
+                task = client.poll_research(notebook_id, target_task_id=task_id)
         
         # Handle dict response from client
         if isinstance(task, dict):
@@ -304,7 +312,20 @@ def import_research(
             else:
                 task_id = get_alias_manager().resolve(task_id)
             
-            sources = client.import_research(notebook_id, task_id, source_indices)
+            # Get sources from the latest research poll
+            research_result = client.poll_research(notebook_id, target_task_id=task_id)
+            if not research_result or 'sources' not in research_result:
+                console.print("[red]Error:[/red] No research sources found.")
+                raise typer.Exit(1)
+            
+            # Filter sources by indices if provided
+            all_sources = research_result.get('sources', [])
+            if source_indices:
+                sources_to_import = [all_sources[i] for i in source_indices if i < len(all_sources)]
+            else:
+                sources_to_import = all_sources
+            
+            sources = client.import_research_sources(notebook_id, task_id, sources_to_import)
         
         console.print(f"[green]✓[/green] Imported {len(sources) if sources else 0} source(s)")
         if sources:

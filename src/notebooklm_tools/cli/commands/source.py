@@ -20,7 +20,19 @@ app = typer.Typer(
 
 def get_client(profile: str | None = None) -> NotebookLMClient:
     """Get a client instance."""
-    return NotebookLMClient(profile=profile)
+    from notebooklm_tools.core.auth import AuthManager
+    
+    manager = AuthManager(profile if profile else "default")
+    if not manager.profile_exists():
+        console.print(f"[red]Error:[/red] Profile '{manager.profile_name}' not found. Run 'nlm login' first.")
+        raise typer.Exit(1)
+        
+    p = manager.load_profile()
+    return NotebookLMClient(
+        cookies=p.cookies,
+        csrf_token=p.csrf_token or "",
+        session_id=p.session_id or "",
+    )
 
 
 @app.command("list")
@@ -39,9 +51,13 @@ def list_sources(
         notebook_id = get_alias_manager().resolve(notebook_id)
         with get_client(profile) as client:
             if drive:
-                sources = client.list_drive_sources(notebook_id, check_freshness=not skip_freshness)
+                # For drive mode, get sources with types and check freshness
+                sources = client.get_notebook_sources_with_types(notebook_id)
+                if not skip_freshness:
+                    for src in sources:
+                        src['is_fresh'] = client.check_source_freshness(src['id'])
             else:
-                sources = client.list_sources(notebook_id)
+                sources = client.get_notebook_sources_with_types(notebook_id)
         
         fmt = detect_output_format(json_output, quiet, url_flag=url)
         formatter = get_formatter(fmt, console)
@@ -89,18 +105,18 @@ def add_source(
     try:
         with get_client(profile) as client:
             if url:
-                result = client.add_source_url(notebook_id, url)
+                result = client.add_url_source(notebook_id, url=url)
                 source_desc = url
             elif youtube:
-                result = client.add_source_url(notebook_id, youtube)
+                result = client.add_url_source(notebook_id, url=youtube)
                 source_desc = youtube
             elif text:
-                result = client.add_source_text(notebook_id, text, title=title or "Pasted Text")
+                result = client.add_text_source(notebook_id, text=text, title=title or "Pasted Text")
                 source_desc = title or "Pasted Text"
             elif drive:
                 if not title:
                     title = f"Drive Document ({drive[:8]}...)"
-                result = client.add_source_drive(notebook_id, drive, title, doc_type)
+                result = client.add_drive_source(notebook_id, document_id=drive, title=title, doc_type=doc_type)
                 source_desc = title
             elif file:
                 from pathlib import Path
@@ -153,7 +169,7 @@ def get_source(
     try:
         source_id = get_alias_manager().resolve(source_id)
         with get_client(profile) as client:
-            source = client.get_source(source_id)
+            source = client.get_source_fulltext(source_id)
         
         fmt = detect_output_format(json_output)
         formatter = get_formatter(fmt, console)
@@ -174,14 +190,14 @@ def describe_source(
     try:
         source_id = get_alias_manager().resolve(source_id)
         with get_client(profile) as client:
-            summary = client.describe_source(source_id)
+            summary = client.get_source_guide(source_id)
         
         console.print("[bold]Summary:[/bold]")
-        console.print(summary.summary)
+        console.print(summary["summary"])
         
-        if summary.keywords:
+        if summary.get("keywords"):
             console.print("\n[bold]Keywords:[/bold]")
-            console.print(", ".join(summary.keywords))
+            console.print(", ".join(summary["keywords"]))
     except NLMError as e:
         console.print(f"[red]Error:[/red] {e.message}")
         if e.hint:
@@ -199,20 +215,20 @@ def get_source_content(
     try:
         source_id = get_alias_manager().resolve(source_id)
         with get_client(profile) as client:
-            content = client.get_source_content(source_id)
+            content = client.get_source_fulltext(source_id)
         
         if output:
             # Write raw content to file
             from pathlib import Path
-            Path(output).write_text(content.content)
-            console.print(f"[green]✓[/green] Wrote {content.char_count:,} characters to {output}")
+            Path(output).write_text(content["content"])
+            console.print(f"[green]✓[/green] Wrote {content['char_count']:,} characters to {output}")
         else:
             # Display to console
-            console.print(f"[bold]Title:[/bold] {content.title}")
-            console.print(f"[bold]Type:[/bold] {content.source_type}")
-            console.print(f"[bold]Characters:[/bold] {content.char_count:,}")
+            console.print(f"[bold]Title:[/bold] {content['title']}")
+            console.print(f"[bold]Type:[/bold] {content['source_type']}")
+            console.print(f"[bold]Characters:[/bold] {content['char_count']:,}")
             console.print("\n[bold]Content:[/bold]")
-            console.print(content.content)
+            console.print(content["content"])
     except NLMError as e:
         console.print(f"[red]Error:[/red] {e.message}")
         if e.hint:
@@ -257,9 +273,9 @@ def list_stale_sources(
     try:
         notebook_id = get_alias_manager().resolve(notebook_id)
         with get_client(profile) as client:
-            sources = client.list_drive_sources(notebook_id)
+            sources = client.get_notebook_sources_with_types(notebook_id)
         
-        stale_sources = [s for s in sources if s.is_stale]
+        stale_sources = [s for s in sources if not s.get('is_fresh', True)]
         
         if not stale_sources:
             console.print("[green]✓[/green] All Drive sources are up to date.")
@@ -298,8 +314,8 @@ def sync_sources(
                 ids_to_sync = [get_alias_manager().resolve(sid.strip()) for sid in source_ids.split(",")]
             else:
                 # Get all stale sources
-                sources = client.list_drive_sources(notebook_id)
-                ids_to_sync = [s.id for s in sources if s.is_stale]
+                sources = client.get_notebook_sources_with_types(notebook_id)
+                ids_to_sync = [s['id'] for s in sources if not s.get('is_fresh', True)]
         
         if not ids_to_sync:
             console.print("[green]✓[/green] No sources need syncing.")
@@ -312,7 +328,8 @@ def sync_sources(
             )
         
         with get_client(profile) as client:
-            client.sync_sources(ids_to_sync)
+            for source_id in ids_to_sync:
+                client.sync_drive_source(source_id)
         
         console.print(f"[green]✓[/green] Synced {len(ids_to_sync)} source(s)")
     except NLMError as e:
