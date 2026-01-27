@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-**NotebookLM MCP Server**
+**NotebookLM MCP Server & CLI**
 
-This project implements a Model Context Protocol (MCP) server that provides programmatic access to [NotebookLM](https://notebooklm.google.com). It allows AI agents and developers to interact with NotebookLM notebooks, sources, and query capabilities.
+This project implements a Model Context Protocol (MCP) server **and a full-featured Command Line Interface (CLI)** that provides programmatic access to [NotebookLM](https://notebooklm.google.com). It allows AI agents, developers, and power users to interact with NotebookLM notebooks, sources, query capabilities, and **download generated artifacts** (Audio, Video, PDF, etc.).
 
 Tested with personal/free tier accounts. May work with Google Workspace accounts but has not been tested. This project relies on internal APIs (`batchexecute` RPCs).
 

@@ -733,7 +733,7 @@ def source_delete(
 
 
 @logged_tool()
-def download_audio(
+async def download_audio(
     notebook_id: str,
     output_path: str,
     artifact_id: str | None = None,
@@ -747,7 +747,7 @@ def download_audio(
     """
     try:
         client = get_client()
-        saved_path = client.download_audio(notebook_id, output_path, artifact_id)
+        saved_path = await client.download_audio(notebook_id, output_path, artifact_id)
         return {
             "status": "success",
             "path": saved_path,
@@ -757,7 +757,7 @@ def download_audio(
 
 
 @logged_tool()
-def download_video(
+async def download_video(
     notebook_id: str,
     output_path: str,
     artifact_id: str | None = None,
@@ -771,7 +771,7 @@ def download_video(
     """
     try:
         client = get_client()
-        saved_path = client.download_video(notebook_id, output_path, artifact_id)
+        saved_path = await client.download_video(notebook_id, output_path, artifact_id)
         return {
             "status": "success",
             "path": saved_path,
@@ -829,7 +829,7 @@ def download_mind_map(
 
 
 @logged_tool()
-def download_slide_deck(
+async def download_slide_deck(
     notebook_id: str,
     output_path: str,
     artifact_id: str | None = None,
@@ -843,7 +843,7 @@ def download_slide_deck(
     """
     try:
         client = get_client()
-        saved_path = client.download_slide_deck(notebook_id, output_path, artifact_id)
+        saved_path = await client.download_slide_deck(notebook_id, output_path, artifact_id)
         return {
             "status": "success",
             "path": saved_path,
@@ -853,7 +853,7 @@ def download_slide_deck(
 
 
 @logged_tool()
-def download_infographic(
+async def download_infographic(
     notebook_id: str,
     output_path: str,
     artifact_id: str | None = None,
@@ -867,7 +867,7 @@ def download_infographic(
     """
     try:
         client = get_client()
-        saved_path = client.download_infographic(notebook_id, output_path, artifact_id)
+        saved_path = await client.download_infographic(notebook_id, output_path, artifact_id)
         return {
             "status": "success",
             "path": saved_path,

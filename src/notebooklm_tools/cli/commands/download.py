@@ -1,3 +1,4 @@
+import asyncio
 import typer
 from typing import Optional
 from pathlib import Path
@@ -47,7 +48,7 @@ def download_audio(
     try:
         path = output or f"{notebook_id}_audio.m4a"
         saved = download_with_spinner(
-            lambda: client.download_audio(notebook_id, path, artifact_id),
+            lambda: asyncio.run(client.download_audio(notebook_id, path, artifact_id)),
             "Downloading audio overview...",
             show_spinner=not no_spinner
         )
@@ -70,7 +71,7 @@ def download_video(
     try:
         path = output or f"{notebook_id}_video.mp4"
         saved = download_with_spinner(
-            lambda: client.download_video(notebook_id, path, artifact_id),
+            lambda: asyncio.run(client.download_video(notebook_id, path, artifact_id)),
             "Downloading video overview...",
             show_spinner=not no_spinner
         )
@@ -129,7 +130,7 @@ def download_slide_deck(
     try:
         path = output or f"{notebook_id}_slides.pdf"
         saved = download_with_spinner(
-            lambda: client.download_slide_deck(notebook_id, path, artifact_id),
+            lambda: asyncio.run(client.download_slide_deck(notebook_id, path, artifact_id)),
             "Downloading slide deck...",
             show_spinner=not no_spinner
         )
@@ -152,7 +153,7 @@ def download_infographic(
     try:
         path = output or f"{notebook_id}_infographic.png"
         saved = download_with_spinner(
-            lambda: client.download_infographic(notebook_id, path, artifact_id),
+            lambda: asyncio.run(client.download_infographic(notebook_id, path, artifact_id)),
             "Downloading infographic...",
             show_spinner=not no_spinner
         )

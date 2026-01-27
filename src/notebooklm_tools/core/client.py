@@ -1734,7 +1734,7 @@ class NotebookLMClient:
              return result[0] if isinstance(result[0], list) else result
         return []
 
-    def download_audio(
+    async def download_audio(
         self, notebook_id: str, output_path: str, artifact_id: str | None = None
     ) -> str:
         """Download an Audio Overview to a file.
@@ -1747,9 +1747,8 @@ class NotebookLMClient:
         Returns:
             The output path.
         """
-        import asyncio
         artifacts = self._list_raw(notebook_id)
-        
+
         # Filter for completed audio (Type 1, Status 3)
         # Type 1 = STUDIO_TYPE_AUDIO (constants.py)
         # Status 3 = COMPLETED
@@ -1758,7 +1757,7 @@ class NotebookLMClient:
             if isinstance(a, list) and len(a) > 4:
                 if a[2] == self.STUDIO_TYPE_AUDIO and a[4] == 3: # 3 is COMPLETED
                     candidates.append(a)
-        
+
         if not candidates:
             raise ArtifactNotReadyError("audio")
 
@@ -1794,12 +1793,12 @@ class NotebookLMClient:
             if not url:
                 raise ArtifactDownloadError("audio", details="No download URL found")
 
-            return asyncio.run(self._download_url(url, output_path))
-            
+            return await self._download_url(url, output_path)
+
         except (IndexError, TypeError, AttributeError) as e:
             raise ArtifactParseError("audio", details=str(e)) from e
 
-    def download_video(
+    async def download_video(
         self, notebook_id: str, output_path: str, artifact_id: str | None = None
     ) -> str:
         """Download a Video Overview to a file.
@@ -1812,16 +1811,15 @@ class NotebookLMClient:
         Returns:
             The output path.
         """
-        import asyncio
         artifacts = self._list_raw(notebook_id)
-        
+
         # Filter for completed video (Type 3, Status 3)
         candidates = []
         for a in artifacts:
             if isinstance(a, list) and len(a) > 4:
                  if a[2] == self.STUDIO_TYPE_VIDEO and a[4] == 3:
                      candidates.append(a)
-        
+
         if not candidates:
             raise ArtifactNotReadyError("video")
 
@@ -1867,7 +1865,7 @@ class NotebookLMClient:
             if not url:
                 raise ArtifactDownloadError("video", details="No download URL found")
 
-            return asyncio.run(self._download_url(url, output_path))
+            return await self._download_url(url, output_path)
 
         except (IndexError, TypeError, AttributeError) as e:
             raise ArtifactParseError("video", details=str(e)) from e
@@ -3374,7 +3372,7 @@ class NotebookLMClient:
 
 
 
-    def download_infographic(
+    async def download_infographic(
         self, notebook_id: str, output_path: str, artifact_id: str | None = None
     ) -> str:
         """Download an Infographic to a file.
@@ -3387,16 +3385,15 @@ class NotebookLMClient:
         Returns:
             The output path.
         """
-        import asyncio
         artifacts = self._list_raw(notebook_id)
-        
+
         # Filter for completed infographics (Type 7, Status 3)
         candidates = []
         for a in artifacts:
             if isinstance(a, list) and len(a) > 4:
                 if a[2] == self.STUDIO_TYPE_INFOGRAPHIC and a[4] == 3:
                      candidates.append(a)
-        
+
         if not candidates:
             raise ArtifactNotReadyError("infographic")
 
@@ -3415,20 +3412,20 @@ class NotebookLMClient:
                 options = target[14]
                 if isinstance(options, list) and len(options) > 2:
                     img_data = options[2]
-                    if (isinstance(img_data, list) and len(img_data) > 0 and 
+                    if (isinstance(img_data, list) and len(img_data) > 0 and
                         isinstance(img_data[0], list) and len(img_data[0]) > 1):
                         possible_url = img_data[0][1]
                         if isinstance(possible_url, list) and len(possible_url) > 0:
                             url = possible_url[0]
                             if isinstance(url, str) and url.startswith("http"):
-                                return asyncio.run(self._download_url(url, output_path))
-            
+                                return await self._download_url(url, output_path)
+
             raise ArtifactDownloadError("infographic", details="Could not find image URL in metadata")
 
         except (IndexError, TypeError, AttributeError) as e:
             raise ArtifactParseError("infographic", details=str(e)) from e
 
-    def download_slide_deck(
+    async def download_slide_deck(
         self, notebook_id: str, output_path: str, artifact_id: str | None = None
     ) -> str:
         """Download a slide deck as a PDF file.
@@ -3441,16 +3438,15 @@ class NotebookLMClient:
         Returns:
             The output path.
         """
-        import asyncio
         artifacts = self._list_raw(notebook_id)
-        
+
         # Filter for completed slide deck (Type 8, Status 3)
         candidates = []
         for a in artifacts:
             if isinstance(a, list) and len(a) > 4:
                 if a[2] == self.STUDIO_TYPE_SLIDE_DECK and a[4] == 3:
                      candidates.append(a)
-        
+
         if not candidates:
             raise ArtifactNotReadyError("slide_deck")
 
@@ -3466,14 +3462,14 @@ class NotebookLMClient:
         try:
             if len(target) <= 16:
                  raise ArtifactParseError("slide_deck", details="Missing metadata at index 16")
-            
+
             # [config, title, slides_list, pdf_url]
             metadata = target[16]
             if isinstance(metadata, list) and len(metadata) > 3:
                 pdf_url = metadata[3]
                 if isinstance(pdf_url, str) and pdf_url.startswith("http"):
-                     return asyncio.run(self._download_url(pdf_url, output_path))
-            
+                     return await self._download_url(pdf_url, output_path)
+
             raise ArtifactDownloadError("slide_deck", details="Could not find PDF URL")
 
         except (IndexError, TypeError, AttributeError) as e:

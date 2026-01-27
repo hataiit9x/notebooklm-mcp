@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**NotebookLM MCP Server** - Provides programmatic access to NotebookLM (notebooklm.google.com) using internal APIs.
+**NotebookLM MCP Server & CLI** - Provides programmatic access to NotebookLM (notebooklm.google.com) via both a Model Context Protocol server and a comprehensive command-line interface.
 
 Tested with personal/free tier accounts. May work with Google Workspace accounts but has not been tested.
 
@@ -132,6 +132,13 @@ src/notebooklm_tools/
 | `quiz_create` | Generate interactive quizzes (REQUIRES confirmation) |
 | `data_table_create` | Generate data tables from sources (REQUIRES confirmation) |
 | `mind_map_create` | Generate and save mind maps (REQUIRES confirmation) |
+| `download_audio` | Download Audio Overview to file (MP4/MP3) |
+| `download_video` | Download Video Overview to file (MP4) |
+| `download_infographic` | Download Infographic to file (PNG) |
+| `download_slide_deck` | Download Slide Deck to file (PDF) |
+| `download_report` | Download Report to file (Markdown) |
+| `download_data_table` | Download Data Table to file (CSV) |
+| `download_mind_map` | Download Mind Map to file (JSON) |
 
 | `studio_status` | Check studio artifact generation status |
 | `studio_delete` | Delete studio artifacts (REQUIRES confirmation) |
