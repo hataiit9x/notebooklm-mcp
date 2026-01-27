@@ -139,6 +139,8 @@ src/notebooklm_tools/
 | `download_report` | Download Report to file (Markdown) |
 | `download_data_table` | Download Data Table to file (CSV) |
 | `download_mind_map` | Download Mind Map to file (JSON) |
+| `download_quiz` | Download Quiz to file (JSON/Markdown/HTML) |
+| `download_flashcards` | Download Flashcards to file (JSON/Markdown/HTML) |
 
 | `studio_status` | Check studio artifact generation status |
 | `studio_delete` | Delete studio artifacts (REQUIRES confirmation) |

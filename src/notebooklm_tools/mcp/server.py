@@ -901,6 +901,62 @@ def download_data_table(
 
 
 @logged_tool()
+async def download_quiz(
+    notebook_id: str,
+    output_path: str,
+    artifact_id: str | None = None,
+    output_format: str = "json",
+) -> dict[str, Any]:
+    """Download Quiz to a file.
+
+    Args:
+        notebook_id: Notebook UUID
+        output_path: Path to save the file
+        artifact_id: Optional specific artifact ID
+        output_format: Output format - json, markdown, or html (default: json)
+    """
+    try:
+        client = get_client()
+        saved_path = await client.download_quiz(
+            notebook_id, output_path, artifact_id, output_format
+        )
+        return {
+            "status": "success",
+            "path": saved_path,
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@logged_tool()
+async def download_flashcards(
+    notebook_id: str,
+    output_path: str,
+    artifact_id: str | None = None,
+    output_format: str = "json",
+) -> dict[str, Any]:
+    """Download Flashcards to a file.
+
+    Args:
+        notebook_id: Notebook UUID
+        output_path: Path to save the file
+        artifact_id: Optional specific artifact ID
+        output_format: Output format - json, markdown, or html (default: json)
+    """
+    try:
+        client = get_client()
+        saved_path = await client.download_flashcards(
+            notebook_id, output_path, artifact_id, output_format
+        )
+        return {
+            "status": "success",
+            "path": saved_path,
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@logged_tool()
 def research_start(
     query: str,
     source: str = "web",

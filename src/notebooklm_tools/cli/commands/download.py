@@ -181,3 +181,99 @@ def download_data_table(
         raise typer.Exit(1)
     except Exception as e:
         handle_error(e)
+
+
+@app.command("quiz")
+def download_quiz_cmd(
+    notebook_id: str = typer.Argument(..., help="Notebook ID"),
+    output: Optional[str] = typer.Option(
+        None, "--output", "-o",
+        help="Output path (default: ./{notebook_id}_quiz.{ext})"
+    ),
+    artifact_id: Optional[str] = typer.Option(None, "--id", help="Specific artifact ID"),
+    format: str = typer.Option(
+        "json", "--format", "-f",
+        help="Output format: json, markdown, or html"
+    ),
+):
+    """Download Quiz."""
+    client = get_client()
+
+    # Validate format
+    if format not in ("json", "markdown", "html"):
+        console.print(
+            f"[red]Error:[/red] Invalid format '{format}'. "
+            "Use: json, markdown, or html",
+            err=True
+        )
+        raise typer.Exit(1)
+
+    # Determine extension
+    ext_map = {"json": "json", "markdown": "md", "html": "html"}
+    ext = ext_map[format]
+
+    try:
+        path = output or f"{notebook_id}_quiz.{ext}"
+        saved = asyncio.run(
+            client.download_quiz(notebook_id, path, artifact_id, format)
+        )
+        console.print(f"[green]✓[/green] Downloaded quiz to: {saved}")
+    except ArtifactNotReadyError:
+        console.print(
+            "[red]Error:[/red] Quiz is not ready or does not exist.",
+            err=True
+        )
+        raise typer.Exit(1)
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}", err=True)
+        raise typer.Exit(1)
+    except Exception as e:
+        handle_error(e)
+
+
+@app.command("flashcards")
+def download_flashcards_cmd(
+    notebook_id: str = typer.Argument(..., help="Notebook ID"),
+    output: Optional[str] = typer.Option(
+        None, "--output", "-o",
+        help="Output path (default: ./{notebook_id}_flashcards.{ext})"
+    ),
+    artifact_id: Optional[str] = typer.Option(None, "--id", help="Specific artifact ID"),
+    format: str = typer.Option(
+        "json", "--format", "-f",
+        help="Output format: json, markdown, or html"
+    ),
+):
+    """Download Flashcards."""
+    client = get_client()
+
+    # Validate format
+    if format not in ("json", "markdown", "html"):
+        console.print(
+            f"[red]Error:[/red] Invalid format '{format}'. "
+            "Use: json, markdown, or html",
+            err=True
+        )
+        raise typer.Exit(1)
+
+    # Determine extension
+    ext_map = {"json": "json", "markdown": "md", "html": "html"}
+    ext = ext_map[format]
+
+    try:
+        path = output or f"{notebook_id}_flashcards.{ext}"
+        saved = asyncio.run(
+            client.download_flashcards(notebook_id, path, artifact_id, format)
+        )
+        console.print(f"[green]✓[/green] Downloaded flashcards to: {saved}")
+    except ArtifactNotReadyError:
+        console.print(
+            "[red]Error:[/red] Flashcards are not ready or do not exist.",
+            err=True
+        )
+        raise typer.Exit(1)
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}", err=True)
+        raise typer.Exit(1)
+    except Exception as e:
+        handle_error(e)

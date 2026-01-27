@@ -120,3 +120,6 @@ uv run pytest tests/test_api_client.py
 - **RPC Protocol:** The API uses Google's `batchexecute` protocol. Responses often contain "anti-XSSI" prefixes (`)]}'`) that must be stripped.
 - **Tools:** New features should be exposed as MCP tools in `server.py`.
 - **Constants:** All code-name mappings should be defined in `constants.py` using the `CodeMapper` class.
+- [ ] **Interactive Artifact Downloads**:
+    - [x] `download_quiz` - Download to JSON/Markdown/HTML
+    - [x] `download_flashcards` - Download to JSON/Markdown/HTML
