@@ -3857,6 +3857,9 @@ class NotebookLMClient:
 
         Returns:
             HTML content string, or None if not found.
+
+        Raises:
+            ArtifactDownloadError: If API response structure is unexpected.
         """
         result = self._call_rpc(
             self.RPC_GET_INTERACTIVE_HTML,
@@ -3864,19 +3867,54 @@ class NotebookLMClient:
             f"/notebook/{notebook_id}"
         )
 
+        if not result:
+            logger.debug(f"Empty response for artifact {artifact_id}")
+            return None
+
         # Response structure: result[0] contains artifact data
         # HTML content is at result[0][9][0]
-        if result and isinstance(result, list) and len(result) > 0:
+        # This is reverse-engineered from the API and may change
+        try:
+            if not isinstance(result, list) or len(result) == 0:
+                logger.warning(f"Unexpected response type for {artifact_id}: {type(result)}")
+                return None
+
             data = result[0]
-            if isinstance(data, list) and len(data) > 9 and data[9]:
-                return data[9][0]
-        return None
+            if not isinstance(data, list):
+                logger.warning(f"Unexpected artifact data type: {type(data)}")
+                return None
+
+            if len(data) <= 9:
+                logger.warning(f"Artifact data too short (len={len(data)}), expected index 9")
+                return None
+
+            html_container = data[9]
+            if not html_container or not isinstance(html_container, list) or len(html_container) == 0:
+                logger.debug(f"No HTML content in artifact {artifact_id}")
+                return None
+
+            return html_container[0]
+
+        except (IndexError, TypeError) as e:
+            logger.error(f"Error parsing artifact content for {artifact_id}: {e}")
+            # Log truncated response for debugging
+            result_preview = str(result)[:500] if result else "None"
+            logger.debug(f"Response preview: {result_preview}...")
+            raise ArtifactDownloadError(
+                "interactive",
+                details=f"Unexpected API response structure: {e}"
+            ) from e
 
     def _extract_app_data(self, html_content: str) -> dict:
         """Extract JSON app data from interactive HTML.
 
         Quiz and flashcard HTML contains embedded JSON in a data-app-data
         attribute with HTML-encoded content (&quot; for quotes).
+
+        Tries multiple extraction patterns for robustness:
+        1. data-app-data attribute (primary)
+        2. <script id="application-data"> tag (fallback)
+        3. Other common patterns
 
         Args:
             html_content: The HTML content string.
@@ -3885,28 +3923,65 @@ class NotebookLMClient:
             Parsed JSON data as dict.
 
         Raises:
-            ArtifactParseError: If data-app-data attribute not found or invalid JSON.
+            ArtifactParseError: If data cannot be extracted or parsed.
         """
-        import html
+        import html as html_module
         import re
 
-        match = re.search(r'data-app-data="([^"]+)"', html_content)
-        if not match:
-            raise ArtifactParseError(
-                "interactive",
-                details="No data-app-data attribute found in HTML"
+        # Pattern 1: data-app-data attribute (most common)
+        # Handle both single and multiline with greedy matching
+        match = re.search(r'data-app-data="([^"]*(?:\\"[^"]*)*)"', html_content, re.DOTALL)
+        if match:
+            encoded_json = match.group(1)
+            decoded_json = html_module.unescape(encoded_json)
+
+            try:
+                data = json.loads(decoded_json)
+                logger.debug("Extracted app data using data-app-data attribute")
+                return data
+            except json.JSONDecodeError as e:
+                # Log the error but try other patterns
+                logger.debug(f"Failed to parse data-app-data JSON: {e}")
+                logger.debug(f"JSON preview: {decoded_json[:200]}...")
+
+        # Pattern 2: <script id="application-data"> tag
+        match = re.search(
+            r'<script[^>]+id=["\']application-data["\'][^>]*>(.*?)</script>',
+            html_content,
+            re.DOTALL
+        )
+        if match:
+            try:
+                data = json.loads(match.group(1))
+                logger.debug("Extracted app data using script tag")
+                return data
+            except json.JSONDecodeError as e:
+                logger.debug(f"Failed to parse script tag JSON: {e}")
+
+        # Pattern 3: data-state or data-config attributes (additional fallback)
+        for attr in ['data-state', 'data-config', 'data-initial-state']:
+            match = re.search(rf'{attr}="([^"]*(?:\\"[^"]*)*)"', html_content, re.DOTALL)
+            if match:
+                encoded_json = match.group(1)
+                decoded_json = html_module.unescape(encoded_json)
+                try:
+                    data = json.loads(decoded_json)
+                    logger.debug(f"Extracted app data using {attr} attribute")
+                    return data
+                except json.JSONDecodeError:
+                    continue
+
+        # No patterns matched - provide detailed error
+        html_preview = html_content[:500] if html_content else "Empty"
+        logger.error(f"Failed to extract app data. HTML preview: {html_preview}...")
+
+        raise ArtifactParseError(
+            "interactive",
+            details=(
+                "Could not extract JSON data from HTML. "
+                "Tried: data-app-data, script#application-data, data-state, data-config"
             )
-
-        encoded_json = match.group(1)
-        decoded_json = html.unescape(encoded_json)
-
-        try:
-            return json.loads(decoded_json)
-        except json.JSONDecodeError as e:
-            raise ArtifactParseError(
-                "interactive",
-                details=f"Failed to parse JSON: {e}"
-            ) from e
+        )
 
     @staticmethod
     def _format_quiz_markdown(title: str, questions: list[dict]) -> str:
@@ -4004,51 +4079,161 @@ class NotebookLMClient:
         normalized = [{"front": c.get("f", ""), "back": c.get("b", "")} for c in cards]
         return json.dumps({"title": title, "cards": normalized}, indent=2)
 
-    def download_quiz(
+    async def _download_interactive_artifact(
         self,
         notebook_id: str,
         output_path: str,
+        artifact_type: str,
+        is_quiz: bool,
         artifact_id: str | None = None,
-        output_format: str = "markdown"  # json, markdown, html
+        output_format: str = "json",
     ) -> str:
-        """Download a quiz artifact.
+        """Shared implementation for downloading quiz/flashcard artifacts.
 
         Args:
             notebook_id: The notebook ID.
             output_path: Path to save the file.
-            artifact_id: Specific artifact ID.
-            output_format: 'json', 'markdown', or 'html'.
+            artifact_type: Human-readable type for error messages ("quiz" or "flashcards").
+            is_quiz: True for quiz, False for flashcards.
+            artifact_id: Specific artifact ID, or uses first completed artifact.
+            output_format: Output format - json, markdown, or html.
 
         Returns:
-            The output path.
-        """
-        # Note: True download requires fetching the HTML content which is not yet fully reversed
-        # For now, we'll raise NotImplementedError to avoid shipping broken code
-        # until we reverse the GET_INTERACTIVE_HTML RPC
-        raise NotImplementedError("Quiz download requires additional RPC reversing (pending)")
+            The output path where the file was saved.
 
-    def download_flashcards(
+        Raises:
+            ValueError: If invalid output_format.
+            ArtifactNotReadyError: If no completed artifact found.
+            ArtifactParseError: If content parsing fails.
+            ArtifactDownloadError: If content fetch fails.
+        """
+        # Validate format
+        valid_formats = ("json", "markdown", "html")
+        if output_format not in valid_formats:
+            raise ValueError(
+                f"Invalid output_format: {output_format!r}. "
+                f"Use one of: {', '.join(valid_formats)}"
+            )
+
+        # Get all artifacts and filter for completed interactive artifacts
+        artifacts = self._list_raw(notebook_id)
+
+        # Type 4 (STUDIO_TYPE_FLASHCARDS) covers both quizzes and flashcards
+        # Status 3 = completed
+        candidates = [
+            a for a in artifacts
+            if isinstance(a, list) and len(a) > 4
+            and a[2] == self.STUDIO_TYPE_FLASHCARDS
+            and a[4] == 3
+        ]
+
+        if not candidates:
+            raise ArtifactNotReadyError(artifact_type)
+
+        # Select artifact by ID or use most recent
+        if artifact_id:
+            target = next((a for a in candidates if a[0] == artifact_id), None)
+            if not target:
+                raise ArtifactNotReadyError(artifact_type, artifact_id)
+        else:
+            target = candidates[0]  # Most recent
+
+        # Fetch HTML content
+        html_content = self._get_artifact_content(notebook_id, target[0])
+        if not html_content:
+            raise ArtifactDownloadError(
+                artifact_type,
+                details="Failed to fetch HTML content from API"
+            )
+
+        # Extract and parse embedded JSON
+        try:
+            app_data = self._extract_app_data(html_content)
+        except ArtifactParseError:
+            raise  # Re-raise as-is
+        except (ValueError, json.JSONDecodeError) as e:
+            raise ArtifactParseError(artifact_type, details=str(e)) from e
+
+        # Get title from artifact metadata
+        default_title = f"Untitled {artifact_type.title()}"
+        title = target[1] if len(target) > 1 and target[1] else default_title
+
+        # Format content
+        content = self._format_interactive_content(
+            app_data, title, output_format, html_content, is_quiz
+        )
+
+        # Write to file
+        output = Path(output_path)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(content, encoding="utf-8")
+
+        logger.info(f"Downloaded {artifact_type} to {output} ({output_format} format)")
+        return str(output)
+
+    async def download_quiz(
         self,
         notebook_id: str,
         output_path: str,
         artifact_id: str | None = None,
-        output_format: str = "markdown"
+        output_format: str = "json",
     ) -> str:
-        """Download flashcards artifact.
+        """Download quiz artifact.
 
         Args:
             notebook_id: The notebook ID.
             output_path: Path to save the file.
-            artifact_id: Specific artifact ID.
-            output_format: 'json', 'markdown', or 'html'.
+            artifact_id: Specific artifact ID, or uses first completed quiz.
+            output_format: Output format - json, markdown, or html (default: json).
 
         Returns:
-            The output path.
+            The output path where the file was saved.
+
+        Raises:
+            ValueError: If invalid output_format.
+            ArtifactNotReadyError: If no completed quiz found.
+            ArtifactParseError: If content parsing fails.
         """
-        # Note: True download requires fetching the HTML content which is not yet fully reversed
-        # For now, we'll raise NotImplementedError to avoid shipping broken code
-        # until we reverse the GET_INTERACTIVE_HTML RPC
-        raise NotImplementedError("Flashcards download requires additional RPC reversing (pending)")
+        return await self._download_interactive_artifact(
+            notebook_id=notebook_id,
+            output_path=output_path,
+            artifact_type="quiz",
+            is_quiz=True,
+            artifact_id=artifact_id,
+            output_format=output_format,
+        )
+
+    async def download_flashcards(
+        self,
+        notebook_id: str,
+        output_path: str,
+        artifact_id: str | None = None,
+        output_format: str = "json",
+    ) -> str:
+        """Download flashcard deck artifact.
+
+        Args:
+            notebook_id: The notebook ID.
+            output_path: Path to save the file.
+            artifact_id: Specific artifact ID, or uses first completed flashcard deck.
+            output_format: Output format - json, markdown, or html (default: json).
+
+        Returns:
+            The output path where the file was saved.
+
+        Raises:
+            ValueError: If invalid output_format.
+            ArtifactNotReadyError: If no completed flashcards found.
+            ArtifactParseError: If content parsing fails.
+        """
+        return await self._download_interactive_artifact(
+            notebook_id=notebook_id,
+            output_path=output_path,
+            artifact_type="flashcards",
+            is_quiz=False,
+            artifact_id=artifact_id,
+            output_format=output_format,
+        )
 
     def close(self) -> None:
         """Close the HTTP client."""
