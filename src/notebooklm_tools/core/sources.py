@@ -514,23 +514,24 @@ class SourceMixin(BaseClient):
 
         return result
 
-    def upload_file(
+    def upload_file_browser(
         self,
         notebook_id: str,
         file_path: str,
-        headless: bool = False,
         profile_name: str = "default",
     ) -> bool:
-        """Upload a local file to a notebook using Chrome automation.
+        """Upload a local file using Chrome browser automation (fallback method).
+
+        This is a fallback for cases where HTTP upload fails. Requires Chrome.
+        Primary method is add_file() which uses HTTP resumable upload.
 
         This method uses the same Chrome profile that was used during login,
         which already contains authentication cookies. Chrome is launched
-        (visible by default) to perform the upload via browser automation.
+        visibly to perform the upload via browser automation.
 
         Args:
             notebook_id: The notebook ID to upload to
             file_path: Path to the local file to upload
-            headless: Whether to use headless Chrome (default: False for better compatibility)
             profile_name: Name of the profile to use (default: "default")
 
         Returns:
@@ -542,7 +543,7 @@ class SourceMixin(BaseClient):
         """
         try:
             from notebooklm_tools.core.uploader import BrowserUploader
-            uploader = BrowserUploader(profile_name=profile_name, headless=headless)
+            uploader = BrowserUploader(profile_name=profile_name, headless=False)
             try:
                 return uploader.upload_file(notebook_id, file_path)
             finally:
