@@ -24,12 +24,13 @@ def test_source_mixin_has_methods():
     expected_methods = [
         'check_source_freshness',
         'sync_drive_source',
-        'delete_source', 
+        'delete_source',
         'get_notebook_sources_with_types',
         'add_url_source',
         'add_text_source',
         'add_drive_source',
-        'upload_file',
+        'add_file',  # HTTP-based file upload (primary)
+        'upload_file_browser',  # Browser-based file upload (fallback)
         'get_source_guide',
         'get_source_fulltext',
     ]
