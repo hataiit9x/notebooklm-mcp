@@ -79,16 +79,15 @@ def add_source(
     file: Optional[str] = typer.Option(None, "--file", "-f", help="Local file to upload (PDF, etc.)"),
     title: str = typer.Option("", "--title", help="Title for the source"),
     doc_type: str = typer.Option("doc", "--type", help="Drive doc type: doc, slides, sheets, pdf"),
+    wait: bool = typer.Option(False, "--wait", "-w", help="Wait for source processing to complete"),
     profile: Optional[str] = typer.Option(None, "--profile", "-p", help="Profile to use"),
 ) -> None:
     """Add a source to a notebook.
 
     Examples:
         nlm source add <notebook-id> --url https://example.com
-        nlm source add <notebook-id> --text "Some content" --title "My Notes"
-        nlm source add <notebook-id> --file document.pdf
-        nlm source add <notebook-id> --youtube https://youtube.com/watch?v=...
-        nlm source add <notebook-id> --drive <doc-id> --title "My Doc"
+        nlm source add <notebook-id> --url https://example.com --wait
+        nlm source add <notebook-id> --file document.pdf --wait
     """
     notebook_id = get_alias_manager().resolve(notebook_id)
 
@@ -104,18 +103,26 @@ def add_source(
     try:
         with get_client(profile) as client:
             if url:
-                result = client.add_url_source(notebook_id, url=url)
+                if wait:
+                    console.print(f"[blue]Adding {url} and waiting for processing...[/blue]")
+                result = client.add_url_source(notebook_id, url=url, wait=wait)
                 source_desc = url
             elif youtube:
-                result = client.add_url_source(notebook_id, url=youtube)
+                if wait:
+                    console.print(f"[blue]Adding YouTube video and waiting for processing...[/blue]")
+                result = client.add_url_source(notebook_id, url=youtube, wait=wait)
                 source_desc = youtube
             elif text:
-                result = client.add_text_source(notebook_id, text=text, title=title or "Pasted Text")
+                if wait:
+                    console.print(f"[blue]Adding text and waiting for processing...[/blue]")
+                result = client.add_text_source(notebook_id, text=text, title=title or "Pasted Text", wait=wait)
                 source_desc = title or "Pasted Text"
             elif drive:
                 if not title:
                     title = f"Drive Document ({drive[:8]}...)"
-                result = client.add_drive_source(notebook_id, document_id=drive, title=title, doc_type=doc_type)
+                if wait:
+                    console.print(f"[blue]Adding Drive document and waiting for processing...[/blue]")
+                result = client.add_drive_source(notebook_id, document_id=drive, title=title, doc_type=doc_type, wait=wait)
                 source_desc = title
             elif file:
                 from pathlib import Path
@@ -124,21 +131,20 @@ def add_source(
                     console.print(f"[red]Error:[/red] File not found: {file}")
                     raise typer.Exit(1)
 
-                # Use HTTP resumable upload
-                console.print(f"[blue]Uploading {file_path.name}...[/blue]")
-                result = client.add_file(notebook_id, file_path)
+                console.print(f"[blue]Uploading {file_path.name}{'...' if not wait else ' and waiting for processing...'}[/blue]")
+                result = client.add_file(notebook_id, file_path, wait=wait)
                 source_desc = file_path.name
             else:
                 raise typer.Exit(1)  # Should never reach here
 
-        # API returns raw result, not a Source object (except for file upload)
+        # Show result
         if file:
-            # HTTP add_file returns dict with 'id' and 'title'
             console.print(f"[green]✓[/green] Uploaded: {result['title']}")
             console.print(f"[dim]Source ID: {result['id']}[/dim]")
         else:
             if result is not None:
-                console.print(f"[green]✓[/green] Added source: {source_desc}")
+                ready_msg = " (ready)" if wait else ""
+                console.print(f"[green]✓[/green] Added source: {source_desc}{ready_msg}")
             else:
                 console.print(f"[yellow]⚠[/yellow] Source may have been added (no confirmation from API)")
     except NLMError as e:
@@ -146,6 +152,7 @@ def add_source(
         if e.hint:
             console.print(f"\n[dim]Hint: {e.hint}[/dim]")
         raise typer.Exit(1)
+
 
 
 @app.command("get")

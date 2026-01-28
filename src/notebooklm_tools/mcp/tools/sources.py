@@ -15,6 +15,8 @@ def source_add(
     file_path: str | None = None,
     document_id: str | None = None,
     doc_type: str = "doc",
+    wait: bool = False,
+    wait_timeout: float = 120.0,
 ) -> dict[str, Any]:
     """Add a source to a notebook. Unified tool for all source types.
 
@@ -33,12 +35,13 @@ def source_add(
         file_path: Local file path (for source_type=file)
         document_id: Google Drive document ID (for source_type=drive)
         doc_type: Drive doc type: doc|slides|sheets|pdf (for source_type=drive)
+        wait: If True, wait for source processing to complete before returning
+        wait_timeout: Max seconds to wait if wait=True (default 120)
 
     Example:
         source_add(notebook_id="abc", source_type="url", url="https://example.com")
-        source_add(notebook_id="abc", source_type="text", text="Content here", title="My Notes")
-        source_add(notebook_id="abc", source_type="file", file_path="/path/to/doc.pdf")
-        source_add(notebook_id="abc", source_type="drive", document_id="doc123", doc_type="doc")
+        source_add(notebook_id="abc", source_type="url", url="https://example.com", wait=True)
+        source_add(notebook_id="abc", source_type="file", file_path="/path/to/doc.pdf", wait=True)
     """
     valid_types = ["url", "text", "drive", "file"]
     if source_type not in valid_types:
@@ -53,7 +56,7 @@ def source_add(
         if source_type == "url":
             if not url:
                 return {"status": "error", "error": "url is required for source_type='url'"}
-            result = client.add_url_source(notebook_id, url)
+            result = client.add_url_source(notebook_id, url, wait=wait, wait_timeout=wait_timeout)
             if result and result.get("id"):
                 return {
                     "status": "success",
@@ -61,18 +64,20 @@ def source_add(
                     "source_id": result["id"],
                     "title": result.get("title", url),
                     "url": url,
+                    "ready": wait,  # If wait=True, source is ready
                 }
 
         elif source_type == "text":
             if not text:
                 return {"status": "error", "error": "text is required for source_type='text'"}
-            result = client.add_text_source(notebook_id, text, title or "Pasted Text")
+            result = client.add_text_source(notebook_id, text, title or "Pasted Text", wait=wait, wait_timeout=wait_timeout)
             if result and result.get("id"):
                 return {
                     "status": "success",
                     "source_type": "text",
                     "source_id": result["id"],
                     "title": result.get("title", title or "Pasted Text"),
+                    "ready": wait,
                 }
 
         elif source_type == "drive":
@@ -89,7 +94,8 @@ def source_add(
             mime_type = mime_types.get(doc_type, "application/vnd.google-apps.document")
             
             result = client.add_drive_source(
-                notebook_id, document_id, title or "Drive Document", mime_type
+                notebook_id, document_id, title or "Drive Document", mime_type,
+                wait=wait, wait_timeout=wait_timeout
             )
             if result and result.get("id"):
                 return {
@@ -98,12 +104,13 @@ def source_add(
                     "source_id": result["id"],
                     "title": result.get("title", title),
                     "doc_type": doc_type,
+                    "ready": wait,
                 }
 
         elif source_type == "file":
             if not file_path:
                 return {"status": "error", "error": "file_path is required for source_type='file'"}
-            result = client.add_file(notebook_id, file_path)
+            result = client.add_file(notebook_id, file_path, wait=wait, wait_timeout=wait_timeout)
             if result and result.get("id"):
                 return {
                     "status": "success",
@@ -112,11 +119,13 @@ def source_add(
                     "title": result.get("title", file_path.split("/")[-1]),
                     "file_path": file_path,
                     "method": "resumable",
+                    "ready": wait,
                 }
 
         return {"status": "error", "error": f"Failed to add {source_type} source"}
     except Exception as e:
         return {"status": "error", "error": str(e)}
+
 
 
 @logged_tool()

@@ -14,6 +14,7 @@ This mixin provides source-related operations:
 """
 
 from pathlib import Path
+import time
 from typing import Any
 
 import httpx
@@ -30,6 +31,52 @@ class SourceMixin(BaseClient):
     operations. It is designed to be composed with other mixins via
     multiple inheritance in the final NotebookLMClient class.
     """
+
+    # Source processing status codes
+    SOURCE_STATUS_PROCESSING = 1
+    SOURCE_STATUS_READY = 2
+    SOURCE_STATUS_ERROR = 3
+    SOURCE_STATUS_PREPARING = 5
+
+    def wait_for_source_ready(
+        self,
+        notebook_id: str,
+        source_id: str,
+        timeout: float = 120.0,
+        poll_interval: float = 3.0,
+    ) -> dict:
+        """Wait for a source to finish processing.
+        
+        Polls the source status until it becomes READY or times out.
+        
+        Args:
+            notebook_id: Notebook containing the source
+            source_id: Source to wait for
+            timeout: Max seconds to wait (default 120)
+            poll_interval: Seconds between status checks (default 3)
+            
+        Returns:
+            The source dict with status='ready'
+            
+        Raises:
+            TimeoutError: If source doesn't become ready within timeout
+            RuntimeError: If source processing fails
+        """
+        start = time.time()
+        
+        while time.time() - start < timeout:
+            sources = self.get_notebook_sources_with_types(notebook_id)
+            for src in sources:
+                if src.get("id") == source_id:
+                    status = src.get("status")
+                    if status == self.SOURCE_STATUS_READY:
+                        return src
+                    if status == self.SOURCE_STATUS_ERROR:
+                        raise RuntimeError(f"Source {source_id} failed to process")
+                    break
+            time.sleep(poll_interval)
+        
+        raise TimeoutError(f"Source {source_id} not ready after {timeout}s")
 
     def check_source_freshness(self, source_id: str) -> bool | None:
         """Check if a Drive source is fresh (up-to-date with Google Drive)."""
@@ -160,6 +207,12 @@ class SourceMixin(BaseClient):
                             if isinstance(url_info, list) and len(url_info) > 0:
                                 url = url_info[0]
 
+                        # Extract processing status from src[3][1]
+                        # 1=processing, 2=ready, 3=error, 5=preparing
+                        status = self.SOURCE_STATUS_READY  # Default
+                        if len(src) > 3 and isinstance(src[3], list) and len(src[3]) > 1:
+                            status = src[3][1] if isinstance(src[3][1], int) else status
+
                         sources.append({
                             "id": source_id,
                             "title": title,
@@ -167,13 +220,31 @@ class SourceMixin(BaseClient):
                             "source_type_name": constants.SOURCE_TYPES.get_name(source_type),
                             "url": url,
                             "drive_doc_id": drive_doc_id,
-                            "can_sync": can_sync,  # True for Drive docs AND Gemini Notes
+                            "can_sync": can_sync,
+                            "status": status,
                         })
 
         return sources
 
-    def add_url_source(self, notebook_id: str, url: str) -> dict | None:
-        """Add a URL (website or YouTube) as a source to a notebook."""
+
+    def add_url_source(
+        self,
+        notebook_id: str,
+        url: str,
+        wait: bool = False,
+        wait_timeout: float = 120.0,
+    ) -> dict | None:
+        """Add a URL (website or YouTube) as a source to a notebook.
+        
+        Args:
+            notebook_id: Target notebook ID
+            url: URL to add
+            wait: If True, block until source is ready
+            wait_timeout: Seconds to wait if wait=True (default 120)
+            
+        Returns:
+            Source dict with id and title, or None on failure
+        """
         client = self._get_client()
 
         # URL position differs for YouTube vs regular websites:
@@ -202,26 +273,46 @@ class SourceMixin(BaseClient):
             response = client.post(url_endpoint, content=body, timeout=SOURCE_ADD_TIMEOUT)
             response.raise_for_status()
         except httpx.TimeoutException:
-            # Large pages may take longer than the timeout but still succeed on backend
             return {
                 "status": "timeout",
-                "message": f"Operation timed out after {SOURCE_ADD_TIMEOUT}s but may have succeeded. Check notebook sources before retrying.",
+                "message": f"Operation timed out after {SOURCE_ADD_TIMEOUT}s but may have succeeded.",
             }
 
         parsed = self._parse_response(response.text)
         result = self._extract_rpc_result(parsed, self.RPC_ADD_SOURCE)
 
+        source_result = None
         if result and isinstance(result, list) and len(result) > 0:
             source_list = result[0] if result else []
             if source_list and len(source_list) > 0:
                 source_data = source_list[0]
                 source_id = source_data[0][0] if source_data[0] else None
                 source_title = source_data[1] if len(source_data) > 1 else "Untitled"
-                return {"id": source_id, "title": source_title}
-        return None
+                source_result = {"id": source_id, "title": source_title}
+        
+        if source_result and wait:
+            return self.wait_for_source_ready(notebook_id, source_result["id"], wait_timeout)
+        
+        return source_result
 
-    def add_text_source(self, notebook_id: str, text: str, title: str = "Pasted Text") -> dict | None:
-        """Add pasted text as a source to a notebook."""
+
+    def add_text_source(
+        self,
+        notebook_id: str,
+        text: str,
+        title: str = "Pasted Text",
+        wait: bool = False,
+        wait_timeout: float = 120.0,
+    ) -> dict | None:
+        """Add pasted text as a source to a notebook.
+        
+        Args:
+            notebook_id: Target notebook ID
+            text: Text content to add
+            title: Title for the source
+            wait: If True, block until source is ready
+            wait_timeout: Seconds to wait if wait=True (default 120)
+        """
         client = self._get_client()
 
         # Text source params structure:
@@ -242,44 +333,51 @@ class SourceMixin(BaseClient):
         except httpx.TimeoutException:
             return {
                 "status": "timeout",
-                "message": f"Operation timed out after {SOURCE_ADD_TIMEOUT}s but may have succeeded. Check notebook sources before retrying.",
+                "message": f"Operation timed out after {SOURCE_ADD_TIMEOUT}s.",
             }
 
         parsed = self._parse_response(response.text)
         result = self._extract_rpc_result(parsed, self.RPC_ADD_SOURCE)
 
+        source_result = None
         if result and isinstance(result, list) and len(result) > 0:
             source_list = result[0] if result else []
             if source_list and len(source_list) > 0:
                 source_data = source_list[0]
                 source_id = source_data[0][0] if source_data[0] else None
                 source_title = source_data[1] if len(source_data) > 1 else title
-                return {"id": source_id, "title": source_title}
-        return None
+                source_result = {"id": source_id, "title": source_title}
+        
+        if source_result and wait:
+            return self.wait_for_source_ready(notebook_id, source_result["id"], wait_timeout)
+        
+        return source_result
+
 
     def add_drive_source(
         self,
         notebook_id: str,
         document_id: str,
         title: str,
-        mime_type: str = "application/vnd.google-apps.document"
+        mime_type: str = "application/vnd.google-apps.document",
+        wait: bool = False,
+        wait_timeout: float = 120.0,
     ) -> dict | None:
-        """Add a Google Drive document as a source to a notebook."""
+        """Add a Google Drive document as a source to a notebook.
+        
+        Args:
+            notebook_id: Target notebook ID
+            document_id: Google Drive document ID
+            title: Title for the source
+            mime_type: MIME type of the Drive doc
+            wait: If True, block until source is ready
+            wait_timeout: Seconds to wait if wait=True (default 120)
+        """
         client = self._get_client()
 
-        # Drive source params structure (verified from network capture):
         source_data = [
-            [document_id, mime_type, 1, title],  # Drive document info at position 0
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            1
+            [document_id, mime_type, 1, title],
+            None, None, None, None, None, None, None, None, None, 1
         ]
         params = [
             [source_data],
@@ -295,23 +393,28 @@ class SourceMixin(BaseClient):
             response = client.post(url_endpoint, content=body, timeout=SOURCE_ADD_TIMEOUT)
             response.raise_for_status()
         except httpx.TimeoutException:
-            # Large files may take longer than the timeout but still succeed on backend
             return {
                 "status": "timeout",
-                "message": f"Operation timed out after {SOURCE_ADD_TIMEOUT}s but may have succeeded. Check notebook sources before retrying.",
+                "message": f"Operation timed out after {SOURCE_ADD_TIMEOUT}s.",
             }
 
         parsed = self._parse_response(response.text)
         result = self._extract_rpc_result(parsed, self.RPC_ADD_SOURCE)
 
+        source_result = None
         if result and isinstance(result, list) and len(result) > 0:
             source_list = result[0] if result else []
             if source_list and len(source_list) > 0:
                 source_data = source_list[0]
                 source_id = source_data[0][0] if source_data[0] else None
                 source_title = source_data[1] if len(source_data) > 1 else title
-                return {"id": source_id, "title": source_title}
-        return None
+                source_result = {"id": source_id, "title": source_title}
+        
+        if source_result and wait:
+            return self.wait_for_source_ready(notebook_id, source_result["id"], wait_timeout)
+        
+        return source_result
+
 
     def _register_file_source(self, notebook_id: str, filename: str) -> str:
         """Register a file source intent and get SOURCE_ID.
@@ -516,12 +619,11 @@ class SourceMixin(BaseClient):
 
         result = {"id": source_id, "title": filename}
 
-        # Optionally wait for processing
         if wait:
-            # TODO: Implement wait_for_source_ready if needed
-            pass
+            return self.wait_for_source_ready(notebook_id, source_id, wait_timeout)
 
         return result
+
 
     def get_source_guide(self, source_id: str) -> dict[str, Any]:
         """Get AI-generated summary and keywords for a source."""
