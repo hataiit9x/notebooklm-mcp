@@ -293,7 +293,7 @@ class TestFileUploadE2E:
             temp_path = f.name
 
         try:
-            result = client.add_file(temp_notebook["id"], temp_path)
+            result = client.add_file(temp_notebook.id, temp_path)
             assert result["id"] is not None
             assert result["title"].endswith(".txt")
         finally:
@@ -322,6 +322,6 @@ def temp_notebook():
 
     # Cleanup
     try:
-        client.delete_notebook(notebook["id"])
+        client.delete_notebook(notebook.id)
     except Exception:
         pass  # Ignore cleanup errors
