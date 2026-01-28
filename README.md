@@ -48,19 +48,10 @@ Then use natural language: *"Create a notebook about quantum computing and gener
 |------------|-------------|----------|
 | List notebooks | `nlm notebook list` | `notebook_list` |
 | Create notebook | `nlm notebook create` | `notebook_create` |
-| Add URL/YouTube source | `nlm source add --url` | `notebook_add_url` |
-| Add text source | `nlm source add --text` | `notebook_add_text` |
-| Add Google Drive source | `nlm source add --drive` | `notebook_add_drive` |
+| Add Sources (URL, Text, Drive, File) | `nlm source add` | `source_add` |
 | Query notebook (AI chat) | `nlm notebook query` | `notebook_query` |
-| Generate audio podcast | `nlm audio create` | `audio_overview_create` |
-| Generate video overview | `nlm video create` | `video_overview_create` |
-| Generate report | `nlm report create` | `report_create` |
-| Generate quiz | `nlm quiz create` | `quiz_create` |
-| Generate flashcards | `nlm flashcards create` | `flashcards_create` |
-| Generate slides | `nlm slides create` | `slide_deck_create` |
-| Generate infographic | `nlm infographic create` | `infographic_create` |
-| Generate mind map | `nlm mindmap create` | `mind_map_create` |
-| Download artifacts | `nlm download <type>` | `download_*` |
+| Create Studio Content (Audio, Video, etc.) | `nlm studio create` | `studio_create` |
+| Download artifacts | `nlm download <type>` | `download_artifact` |
 | Web/Drive research | `nlm research start` | `research_start` |
 | Share notebook | `nlm share public/invite` | `notebook_share_*` |
 | Sync Drive sources | `nlm source sync` | `source_sync_drive` |
@@ -198,7 +189,7 @@ For detailed instructions and troubleshooting, see **[docs/AUTHENTICATION.md](do
 
 ## MCP Configuration
 
-> **⚠️ Context Window Warning:** This MCP provides **45 tools** which consume a significant portion of your context window. It's recommended to **disable the MCP when not actively using NotebookLM** to preserve context for your other work. In Claude Code, use `@notebooklm-mcp` to toggle it on/off, or use `/mcp` command.
+> **⚠️ Context Window Warning:** This MCP provides **26 tools** which consume a significant portion of your context window. It's recommended to **disable the MCP when not actively using NotebookLM** to preserve context for your other work. In Claude Code, use `@notebooklm-mcp` to toggle it on/off, or use `/mcp` command.
  
 ### CLI Options
 
