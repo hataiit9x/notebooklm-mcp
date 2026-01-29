@@ -1,6 +1,5 @@
 """Download tools - Consolidated download_artifact for all artifact types."""
 
-import asyncio
 from typing import Any, Literal
 
 from ._utils import get_client, logged_tool

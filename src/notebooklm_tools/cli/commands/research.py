@@ -7,8 +7,8 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from notebooklm_tools.core.alias import get_alias_manager
-from notebooklm_tools.core.client import NotebookLMClient
 from notebooklm_tools.core.exceptions import NLMError
+from notebooklm_tools.cli.utils import get_client
 
 console = Console()
 app = typer.Typer(
@@ -16,23 +16,6 @@ app = typer.Typer(
     rich_markup_mode="rich",
     no_args_is_help=True,
 )
-
-
-def get_client(profile: str | None = None) -> NotebookLMClient:
-    """Get a client instance."""
-    from notebooklm_tools.core.auth import AuthManager
-    
-    manager = AuthManager(profile if profile else "default")
-    if not manager.profile_exists():
-        console.print(f"[red]Error:[/red] Profile '{manager.profile_name}' not found. Run 'nlm login' first.")
-        raise typer.Exit(1)
-        
-    p = manager.load_profile()
-    return NotebookLMClient(
-        cookies=p.cookies,
-        csrf_token=p.csrf_token or "",
-        session_id=p.session_id or "",
-    )
 
 
 @app.command("start")

@@ -278,8 +278,8 @@ class DownloadMixin(BaseClient):
         candidates = []
         for a in artifacts:
             if isinstance(a, list) and len(a) > 4:
-                 if a[2] == self.STUDIO_TYPE_VIDEO and a[4] == 3:
-                     candidates.append(a)
+                if a[2] == self.STUDIO_TYPE_VIDEO and a[4] == 3:
+                    candidates.append(a)
 
         if not candidates:
             raise ArtifactNotReadyError("video")
@@ -482,8 +482,8 @@ class DownloadMixin(BaseClient):
         candidates = []
         for a in artifacts:
             if isinstance(a, list) and len(a) > 7:
-                 if a[2] == self.STUDIO_TYPE_REPORT and a[4] == 3:
-                     candidates.append(a)
+                if a[2] == self.STUDIO_TYPE_REPORT and a[4] == 3:
+                    candidates.append(a)
         
         if not candidates:
              raise ArtifactNotReadyError("report")

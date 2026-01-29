@@ -44,7 +44,9 @@ class TestMCPSourceAddFile:
                 )
 
             # Verify client.add_file was called with correct args
-            mock_client.add_file.assert_called_once_with("test-notebook-123", temp_path)
+            mock_client.add_file.assert_called_once_with(
+                "test-notebook-123", temp_path, wait=False, wait_timeout=120.0
+            )
 
             # Verify return value
             assert result["status"] == "success"

@@ -6,8 +6,11 @@ from notebooklm_tools.core.auth import load_cached_tokens, AuthManager
 
 console = Console()
 
-def get_client() -> NotebookLMClient:
+def get_client(profile: str | None = None) -> NotebookLMClient:
     """Get an authenticated NotebookLM client.
+
+    Args:
+        profile: Optional profile name. Uses 'default' if not specified.
 
     Tries to load cached tokens first. If unavailable, guides the user to login.
     """
@@ -17,19 +20,23 @@ def get_client() -> NotebookLMClient:
     if env_cookies:
         return NotebookLMClient(cookies=extract_cookies_from_string(env_cookies))
 
-    # 2. Try loading default profile
-    auth = AuthManager()
+    # 2. Try loading specified or default profile
+    manager = AuthManager(profile if profile else "default")
+    if not manager.profile_exists():
+        console.print(f"[red]Error:[/red] Profile '{manager.profile_name}' not found. Run 'nlm login' first.")
+        raise typer.Exit(1)
+
     try:
-        profile = auth.load_profile()
+        p = manager.load_profile()
         return NotebookLMClient(
-            cookies=profile.cookies,
-            csrf_token=profile.csrf_token,
-            session_id=profile.session_id
+            cookies=p.cookies,
+            csrf_token=p.csrf_token or "",
+            session_id=p.session_id or "",
         )
     except Exception:
         # No valid profile found
         console.print("[yellow]No authentication found.[/yellow]")
-        console.print("Please run: [bold]nlm auth login[/bold]")
+        console.print("Please run: [bold]nlm login[/bold]")
         raise typer.Exit(1)
 
 def handle_error(e: Exception) -> None:

@@ -29,8 +29,7 @@ def test_source_mixin_has_methods():
         'add_url_source',
         'add_text_source',
         'add_drive_source',
-        'add_file',  # HTTP-based file upload (primary)
-        'upload_file_browser',  # Browser-based file upload (fallback)
+        'add_file',  # HTTP-based file upload
         'get_source_guide',
         'get_source_fulltext',
     ]
