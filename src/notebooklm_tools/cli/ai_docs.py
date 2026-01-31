@@ -473,21 +473,21 @@ nlm delete artifact <notebook-id> <artifact-id> --confirm  # Delete artifact
 
 **Noun-First:**
 ```bash
-nlm download audio <notebook-id> <artifact-id>              # Download audio (mp3)
-nlm download audio <notebook-id> <artifact-id> --output podcast.mp3
-nlm download video <notebook-id> <artifact-id>              # Download video (mp4)
-nlm download report <notebook-id> <artifact-id>             # Download report (txt/md)
-nlm download mind-map <notebook-id> <artifact-id>           # Download mind map (txt)
-nlm download slide-deck <notebook-id> <artifact-id>         # Download slides (txt)
-nlm download infographic <notebook-id> <artifact-id>        # Download infographic (png)
-nlm download data-table <notebook-id> <artifact-id>         # Download data table (csv)
+nlm download audio <notebook-id> --id <artifact-id>              # Download specific audio
+nlm download audio <notebook-id> --output podcast.mp3          # Download latest audio to file
+nlm download video <notebook-id>                               # Download latest video (default filename)
+nlm download report <notebook-id> --output report.md           # Download report
+nlm download mind-map <notebook-id>                            # Download mind map
+nlm download slide-deck <notebook-id>                          # Download slides
+nlm download infographic <notebook-id>                         # Download infographic
+nlm download data-table <notebook-id>                          # Download data table
 ```
 
 **Download Workflow:**
 1. Generate artifact: `nlm audio create <notebook> --confirm`
 2. Check status: `nlm studio status <notebook>` (wait for "completed")
 3. Get artifact ID from status output
-4. Download: `nlm download audio <notebook> <artifact-id>`
+4. Download: `nlm download audio <notebook> --id <artifact-id>`
 
 **Supported Formats:**
 - Audio: `.mp3` (Deep Dive, Brief, Critique, Debate)

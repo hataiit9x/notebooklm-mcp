@@ -103,9 +103,19 @@ def add_source(
             elif drive:
                 if not title:
                     title = f"Drive Document ({drive[:8]}...)"
+                
+                # Map doc_type to mime_type
+                mime_map = {
+                    "doc": "application/vnd.google-apps.document",
+                    "slides": "application/vnd.google-apps.presentation",
+                    "sheets": "application/vnd.google-apps.spreadsheet",
+                    "pdf": "application/pdf"
+                }
+                mime_type = mime_map.get(doc_type, "application/vnd.google-apps.document")
+
                 if wait:
                     console.print(f"[blue]Adding Drive document and waiting for processing...[/blue]")
-                result = client.add_drive_source(notebook_id, document_id=drive, title=title, doc_type=doc_type, wait=wait)
+                result = client.add_drive_source(notebook_id, document_id=drive, title=title, mime_type=mime_type, wait=wait)
                 source_desc = title
             elif file:
                 from pathlib import Path

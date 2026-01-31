@@ -1,14 +1,14 @@
 # NotebookLM MCP - Comprehensive Test Plan
 
-**Purpose:** Verify all **28 consolidated MCP tools** work correctly.
+**Purpose:** Verify all **29 consolidated MCP tools** work correctly.
 
 **Version:** 2.2 (Updated 2026-01-31 - corrected tool count)
 
 **Changes from v2.1:**
-- Corrected tool count: 28 tools (notes consolidated into single `note` tool)
+- Corrected tool count: 29 tools (notes consolidated + server_info added)
 
 **Changes from v1:**
-- Tools consolidated: 45+ → 28 (-38%)
+- Tools consolidated: 45+ → 29 (-36%)
 - `source_add(type=...)` replaces 4 source tools
 - `studio_create(type=...)` replaces 9 creation tools
 - `download_artifact(type=...)` replaces 9 download tools
@@ -42,6 +42,7 @@ verify both staleness detection and sync functionality work correctly.
 
 ### Test 1.1 - Refresh Auth
 **Tool:** `refresh_auth`
+**CLI:** `nlm login --check` (or `nlm auth refresh` if implemented, but `nlm login --check` validates tokens)
 
 **Prompt:**
 ```
@@ -52,21 +53,22 @@ Refresh authentication tokens for NotebookLM.
 
 ---
 
-### Test 1.2 - Save Auth Tokens (Fallback)
-**Tool:** `save_auth_tokens`
+### Test 1.2 - Interactive Login (Primary)
+**Tool:** `save_auth_tokens` (Fallback)
+**CLI:** `nlm login` (Launches Chrome for automated extraction)
 
 **Prompt:**
 ```
-I have cookies from Chrome DevTools. Save them using save_auth_tokens.
-[Note: Use actual cookies from your browser session]
+I need to authenticate with NotebookLM.
 ```
 
-**Expected:** Success message with cache path.
+**Expected:** Chrome opens, logs in, and tokens are saved.
 
 ---
 
 ### Test 1.3 - List Notebooks
 **Tool:** `notebook_list`
+**CLI:** `nlm notebook list`
 
 **Prompt:**
 ```
@@ -79,6 +81,7 @@ List all my NotebookLM notebooks.
 
 ### Test 1.4 - Create Notebook
 **Tool:** `notebook_create`
+**CLI:** `nlm notebook create "MCP Test Notebook"`
 
 **Prompt:**
 ```
@@ -93,6 +96,7 @@ Create a new notebook titled "MCP Test Notebook".
 
 ### Test 1.5 - Get Notebook Details
 **Tool:** `notebook_get`
+**CLI:** `nlm notebook get [notebook_id]`
 
 **Prompt:**
 ```
@@ -105,6 +109,7 @@ Get the details of notebook [notebook_id from Test 1.4].
 
 ### Test 1.6 - Rename Notebook
 **Tool:** `notebook_rename`
+**CLI:** `nlm notebook rename [notebook_id] "MCP Test - Renamed"`
 
 **Prompt:**
 ```
@@ -119,6 +124,7 @@ Rename notebook [notebook_id] to "MCP Test - Renamed".
 
 ### Test 2.1 - Add URL Source
 **Tool:** `source_add`
+**CLI:** `nlm source add [notebook_id] --url https://en.wikipedia.org/wiki/Artificial_intelligence`
 
 **Prompt:**
 ```
@@ -133,6 +139,7 @@ Add a URL source to notebook [notebook_id]:
 
 ### Test 2.2 - Add Text Source
 **Tool:** `source_add`
+**CLI:** `nlm source add [notebook_id] --text "This is a test document..." --title "Test Document"`
 
 **Prompt:**
 ```
@@ -148,6 +155,7 @@ Add a text source to notebook [notebook_id]:
 
 ### Test 2.3 - Add Drive Source (Optional)
 **Tool:** `source_add`
+**CLI:** `nlm source add [notebook_id] --drive [doc_id] --type doc --title "My Drive Doc"`
 
 **Prompt:**
 ```
@@ -164,6 +172,7 @@ Add a Drive document to notebook [notebook_id]:
 
 ### Test 2.4 - Add File Source (Optional)
 **Tool:** `source_add`
+**CLI:** `nlm source add [notebook_id] --file /path/to/document.pdf`
 
 **Prompt:**
 ```
@@ -178,6 +187,7 @@ Add a file to notebook [notebook_id]:
 
 ### Test 2.5 - List Sources with Drive Status
 **Tool:** `source_list_drive`
+**CLI:** `nlm source list [notebook_id] --drive`
 
 **Prompt:**
 ```
@@ -192,6 +202,7 @@ List all sources in notebook [notebook_id] and check their Drive freshness statu
 
 ### Test 2.6 - Describe Source
 **Tool:** `source_describe`
+**CLI:** `nlm source describe [source_id]`
 
 **Prompt:**
 ```
@@ -204,6 +215,7 @@ Get an AI-generated summary of source [source_id].
 
 ### Test 2.7 - Get Source Content
 **Tool:** `source_get_content`
+**CLI:** `nlm source content [source_id]`
 
 **Prompt:**
 ```
@@ -216,6 +228,7 @@ Get the raw text content of source [source_id].
 
 ### Test 2.8 - Delete Source
 **Tool:** `source_delete`
+**CLI:** `nlm source delete [source_id] --confirm`
 
 **Prompt:**
 ```
@@ -230,6 +243,7 @@ Delete source [source_id] with confirm=True.
 
 ### Test 3.1 - Describe Notebook
 **Tool:** `notebook_describe`
+**CLI:** `nlm notebook describe [notebook_id]`
 
 **Prompt:**
 ```
@@ -242,6 +256,7 @@ Get an AI-generated summary of what notebook [notebook_id] is about.
 
 ### Test 3.2 - Query Notebook
 **Tool:** `notebook_query`
+**CLI:** `nlm query [notebook_id] "What is artificial intelligence?"`
 
 **Prompt:**
 ```
@@ -254,6 +269,7 @@ Ask notebook [notebook_id]: "What is artificial intelligence?"
 
 ### Test 3.3 - Configure Chat (Learning Guide)
 **Tool:** `chat_configure`
+**CLI:** `nlm chat configure [notebook_id] --goal learning_guide --response-length longer`
 
 **Prompt:**
 ```
@@ -268,6 +284,7 @@ Configure notebook [notebook_id] chat settings:
 
 ### Test 3.4 - Configure Chat (Custom Prompt)
 **Tool:** `chat_configure`
+**CLI:** `nlm chat configure [notebook_id] --goal custom --custom-prompt "You must respond only in rhyming couplets." --response-length default`
 
 **Prompt:**
 ```
@@ -283,6 +300,7 @@ Configure notebook [notebook_id] chat settings:
 
 ### Test 3.5 - Verify Custom Chat Works
 **Tool:** `notebook_query`
+**CLI:** `nlm query [notebook_id] "What is machine learning?"`
 
 **Prompt:**
 ```
@@ -297,6 +315,7 @@ Ask notebook [notebook_id]: "What is machine learning?"
 
 ### Test 4.1 - Start Fast Research (Web)
 **Tool:** `research_start`
+**CLI:** `nlm research start "OpenShift container platform" --mode fast --source web`
 
 **Prompt:**
 ```
@@ -313,6 +332,7 @@ Start fast web research for "OpenShift container platform" in notebook [notebook
 
 ### Test 4.2 - Check Research Status
 **Tool:** `research_status`
+**CLI:** `nlm research status [notebook_id]`
 
 **Prompt:**
 ```
@@ -328,6 +348,7 @@ Check research status for notebook [notebook_id]. Poll until complete.
 
 ### Test 4.3 - Import Research Sources
 **Tool:** `research_import`
+**CLI:** `nlm research import [notebook_id] [task_id]`
 
 **Prompt:**
 ```
@@ -340,6 +361,7 @@ Import all discovered sources from research task [task_id] into notebook [notebo
 
 ### Test 4.4 - Start Deep Research (Background)
 **Tool:** `research_start`
+**CLI:** `nlm research start "AI ROI return on investment" --mode deep`
 
 **Prompt:**
 ```
@@ -357,6 +379,7 @@ Start deep web research for "AI ROI return on investment" in notebook [notebook_
 
 ### Test 5.1 - Create Audio Overview
 **Tool:** `studio_create`
+**CLI:** `nlm audio create [notebook_id] --format brief --length short`
 
 **Prompt:**
 ```
@@ -376,8 +399,25 @@ Confirmed. Create with confirm=True.
 
 ---
 
+### Test 5.1b - Create Audio with Custom Prompt (Verify Extraction)
+**Tool:** `studio_create`
+**CLI:** `nlm audio create [notebook_id] --focus "Explain this to a 5 year old." --confirm`
+
+**Prompt:**
+```
+Create an audio overview for notebook [notebook_id] with a focus prompt:
+- artifact_type: audio
+- focus_prompt: "Explain this to a 5 year old."
+- confirm: True
+```
+
+**Expected:** Audio generation started. We will verify the prompt "Explain this to a 5 year old" appears in Test 5.10.
+
+---
+
 ### Test 5.2 - Create Video Overview
 **Tool:** `studio_create`
+**CLI:** `nlm video create [notebook_id] --format brief --style classic --confirm`
 
 **Prompt:**
 ```
@@ -394,6 +434,7 @@ Create a video overview for notebook [notebook_id]:
 
 ### Test 5.3 - Create Report
 **Tool:** `studio_create`
+**CLI:** `nlm report create [notebook_id] --format "Briefing Doc" --confirm`
 
 **Prompt:**
 ```
@@ -409,6 +450,7 @@ Create a report for notebook [notebook_id]:
 
 ### Test 5.4 - Create Flashcards
 **Tool:** `studio_create`
+**CLI:** `nlm flashcards create [notebook_id] --difficulty medium --confirm`
 
 **Prompt:**
 ```
@@ -424,6 +466,7 @@ Create flashcards for notebook [notebook_id]:
 
 ### Test 5.5 - Create Quiz
 **Tool:** `studio_create`
+**CLI:** `nlm quiz create [notebook_id] --count 2 --difficulty 2 --confirm`
 
 **Prompt:**
 ```
@@ -440,6 +483,7 @@ Create a quiz for notebook [notebook_id]:
 
 ### Test 5.6 - Create Infographic
 **Tool:** `studio_create`
+**CLI:** `nlm infographic create [notebook_id] --orientation landscape --detail standard --confirm`
 
 **Prompt:**
 ```
@@ -456,6 +500,7 @@ Create an infographic for notebook [notebook_id]:
 
 ### Test 5.7 - Create Slide Deck
 **Tool:** `studio_create`
+**CLI:** `nlm slides create [notebook_id] --format detailed_deck --length short --confirm`
 
 **Prompt:**
 ```
@@ -472,6 +517,7 @@ Create a slide deck for notebook [notebook_id]:
 
 ### Test 5.8 - Create Mind Map
 **Tool:** `studio_create`
+**CLI:** `nlm mindmap create [notebook_id] --title "AI Concepts" --confirm`
 
 **Prompt:**
 ```
@@ -487,6 +533,7 @@ Create a mind map for notebook [notebook_id]:
 
 ### Test 5.9 - Create Data Table
 **Tool:** `studio_create`
+**CLI:** `nlm data-table create [notebook_id] "Key features and capabilities" --confirm`
 
 **Prompt:**
 ```
@@ -502,13 +549,32 @@ Create a data table for notebook [notebook_id]:
 
 ### Test 5.10 - Check Studio Status
 **Tool:** `studio_status`
+**CLI:** `nlm studio status [notebook_id]`
 
 **Prompt:**
 ```
 Check studio content generation status for notebook [notebook_id].
 ```
 
-**Expected:** List of artifacts with status (in_progress/completed) and URLs.
+**Expected:**
+- List of artifacts with status (in_progress/completed) and URLs.
+- **Verify:** Artifact from Test 5.1b shows `custom_instructions: "Explain this to a 5 year old"`.
+
+---
+
+### Test 5.11 - Rename Studio Artifact
+**Tool:** `studio_status` (with action="rename")
+**CLI:** `nlm studio rename [artifact_id] "My Renamed Podcast"`
+
+**Prompt:**
+```
+Rename artifact [artifact_id] in notebook [notebook_id] to "My Renamed Podcast".
+- action: rename
+- artifact_id: [artifact_id from studio_status]
+- new_title: "My Renamed Podcast"
+```
+
+**Expected:** Artifact renamed successfully.
 
 ---
 
@@ -516,6 +582,7 @@ Check studio content generation status for notebook [notebook_id].
 
 ### Test 6.1 - Download Report
 **Tool:** `download_artifact`
+**CLI (Verb):** `nlm download report [notebook_id] --output /tmp/report.md`
 
 **Prompt:**
 ```
@@ -530,6 +597,7 @@ Download the report from notebook [notebook_id]:
 
 ### Test 6.2 - Download Flashcards (JSON)
 **Tool:** `download_artifact`
+**CLI:** `nlm download flashcards [notebook_id] --format json --output /tmp/flashcards.json`
 
 **Prompt:**
 ```
@@ -545,6 +613,7 @@ Download flashcards from notebook [notebook_id]:
 
 ### Test 6.3 - Download Quiz (Markdown)
 **Tool:** `download_artifact`
+**CLI:** `nlm download quiz [notebook_id] --format markdown --output /tmp/quiz.md`
 
 **Prompt:**
 ```
@@ -560,20 +629,22 @@ Download quiz from notebook [notebook_id]:
 
 ### Test 6.4 - Download Audio
 **Tool:** `download_artifact`
+**CLI:** `nlm download audio [notebook_id] --output /tmp/podcast.m4a`
 
 **Prompt:**
 ```
 Download audio from notebook [notebook_id]:
 - artifact_type: audio
-- output_path: /tmp/podcast.mp4
+- output_path: /tmp/podcast.m4a
 ```
 
-**Expected:** Audio downloaded as MP4.
+**Expected:** Audio downloaded as M4A/MP4.
 
 ---
 
 ### Test 6.5 - Download Slide Deck
 **Tool:** `download_artifact`
+**CLI:** `nlm download slide-deck [notebook_id] --output /tmp/slides.pdf`
 
 **Prompt:**
 ```
@@ -590,6 +661,7 @@ Download slide deck from notebook [notebook_id]:
 
 ### Test 7.1 - Get Share Status
 **Tool:** `notebook_share_status`
+**CLI (Noun):** `nlm share status [notebook_id]`
 
 **Prompt:**
 ```
@@ -602,6 +674,7 @@ Get sharing status for notebook [notebook_id].
 
 ### Test 7.2 - Enable Public Link
 **Tool:** `notebook_share_public`
+**CLI:** `nlm share public [notebook_id]`
 
 **Prompt:**
 ```
@@ -615,6 +688,7 @@ Enable public link for notebook [notebook_id].
 
 ### Test 7.3 - Disable Public Link
 **Tool:** `notebook_share_public`
+**CLI:** `nlm share private [notebook_id]`
 
 **Prompt:**
 ```
@@ -628,6 +702,7 @@ Disable public link for notebook [notebook_id].
 
 ### Test 7.4 - Invite Collaborator (Optional)
 **Tool:** `notebook_share_invite`
+**CLI:** `nlm share invite [notebook_id] test@example.com --role viewer`
 
 **Prompt:**
 ```
@@ -644,6 +719,7 @@ Invite collaborator to notebook [notebook_id]:
 
 ### Test 8.1 - Sync Drive Sources
 **Tool:** `source_sync_drive`
+**CLI (Verb):** `nlm source sync [notebook_id] --confirm`
 
 **Prompt:**
 ```
@@ -661,6 +737,7 @@ If any are stale, sync them using source_sync_drive with confirm=True.
 
 ### Test 9.1 - Check Deep Research Status
 **Tool:** `research_status`
+**CLI (Noun):** `nlm research status [notebook_id]`
 
 **Prompt:**
 ```
@@ -677,6 +754,7 @@ Check deep research status for notebook [notebook_id] with max_wait=60.
 
 ### Test 9.2 - Import Deep Research Sources
 **Tool:** `research_import`
+**CLI (Noun):** `nlm research import [notebook_id] [task_id]`
 
 **Prompt:**
 ```
@@ -691,6 +769,7 @@ Import all deep research sources from task [task_id] into notebook [notebook_id]
 
 ### Test 10.1 - Delete Studio Artifacts
 **Tool:** `studio_delete`
+**CLI (Noun):** `nlm studio delete [notebook_id] [artifact_id] --confirm`
 
 **Prompt:**
 ```
@@ -703,6 +782,7 @@ Get studio status for notebook [notebook_id], then delete each artifact with con
 
 ### Test 10.2 - Delete All Sources
 **Tool:** `source_delete`
+**CLI (Noun):** `nlm source delete [source_id] --confirm`
 
 **Prompt:**
 ```
@@ -715,6 +795,7 @@ List sources in notebook [notebook_id], then delete each with confirm=True.
 
 ### Test 10.3 - Delete Notebook
 **Tool:** `notebook_delete`
+**CLI (Noun):** `nlm notebook delete [notebook_id] --confirm`
 
 **Prompt:**
 ```
@@ -725,14 +806,18 @@ Delete notebook [notebook_id] with confirm=True.
 
 ---
 
-## Test Group 11: Notes Management
+## Test Group 11: Notes Management (Unified `note` tool)
 
 ### Test 11.1 - Create Note
-**Tool:** `note_create`
+**Tool:** `note`
+**CLI (Noun):** `nlm note create [notebook_id] --content "Test" --title "Title"`
 
 **Prompt:**
 ```
-Create a note in notebook [notebook_id] with content "This is a test note about AI" and title "AI Note".
+Create a note in notebook [notebook_id]:
+- action: create
+- content: "This is a test note about AI"
+- title: "AI Note"
 ```
 
 **Expected:** Note created with `note_id`.
@@ -742,11 +827,13 @@ Create a note in notebook [notebook_id] with content "This is a test note about 
 ---
 
 ### Test 11.2 - List Notes
-**Tool:** `note_list`
+**Tool:** `note`
+**CLI (Noun):** `nlm note list [notebook_id]`
 
 **Prompt:**
 ```
-List all notes in notebook [notebook_id].
+List all notes in notebook [notebook_id]:
+- action: list
 ```
 
 **Expected:** Array of notes including the one just created, with previews.
@@ -754,11 +841,15 @@ List all notes in notebook [notebook_id].
 ---
 
 ### Test 11.3 - Update Note
-**Tool:** `note_update`
+**Tool:** `note`
+**CLI (Noun):** `nlm note update [notebook_id] [note_id] --content "Updated"`
 
 **Prompt:**
 ```
-Update note [note_id] in notebook [notebook_id] with new content "Updated: AI is transforming technology".
+Update note [note_id] in notebook [notebook_id]:
+- action: update
+- note_id: [note_id]
+- content: "Updated: AI is transforming technology"
 ```
 
 **Expected:** Success confirmation.
@@ -766,18 +857,40 @@ Update note [note_id] in notebook [notebook_id] with new content "Updated: AI is
 ---
 
 ### Test 11.4 - Delete Note
-**Tool:** `note_delete`
+**Tool:** `note`
+**CLI (Noun):** `nlm note delete [notebook_id] [note_id] --confirm`
 
 **Prompt:**
 ```
-Delete note [note_id] in notebook [notebook_id] with confirm=True.
+Delete note [note_id] in notebook [notebook_id]:
+- action: delete
+- note_id: [note_id]
+- confirm: True
 ```
 
 **Expected:** Deletion confirmation message.
 
 ---
 
-## Summary: 30 Consolidated Tools
+## Test Group 12: Server Info
+
+### Test 12.1 - Get Server Info
+**Tool:** `server_info`
+
+**Prompt:**
+```
+Get NotebookLM MCP server version and check for updates.
+```
+
+**Expected:**
+- `version`: Current version
+- `latest_version`: Latest PyPI version (or null if offline)
+- `update_available`: Boolean
+- `update_command`: Upgrade command
+
+---
+
+## Summary: 29 Consolidated Tools
 
 | Category | Tools | Count |
 |----------|-------|-------|
@@ -788,9 +901,11 @@ Delete note [note_id] in notebook [notebook_id] with confirm=True.
 | **Research** | `research_start`, `research_status`, `research_import` | 3 |
 | **Studio** | `studio_create`, `studio_status`, `studio_delete` | 3 |
 | **Downloads** | `download_artifact` | 1 |
+| **Exports** | `export_artifact` | 1 |
 | **Chat** | `notebook_query`, `chat_configure` | 2 |
-| **Notes** | `note_create`, `note_list`, `note_update`, `note_delete` | 4 |
-| **Total** | | **30** |
+| **Notes** | `note` (unified: list, create, update, delete) | 1 |
+| **Server** | `server_info` | 1 |
+| **Total** | | **29** |
 
 ---
 

@@ -349,15 +349,15 @@ nlm note delete <notebook-id> <note-id> --confirm
 nlm studio status <notebook-id>
 
 # Step 2: Download audio podcast
-nlm download audio <notebook-id> ./downloads/podcast.mp3
+nlm download audio <notebook-id> --output ./downloads/podcast.mp3
 
 # Step 3: Download report
-nlm download report <notebook-id> ./downloads/report.md
+nlm download report <notebook-id> --output ./downloads/report.md
 
 # Step 4: Download quiz in different formats
-nlm download quiz <notebook-id> quiz.json --format json
-nlm download quiz <notebook-id> quiz.html --format html
-nlm download flashcards <notebook-id> cards.html --format html
+nlm download quiz <notebook-id> --output quiz.json --format json
+nlm download quiz <notebook-id> --output quiz.html --format html
+nlm download flashcards <notebook-id> --output cards.html --format html
 
 # Step 5: Export data table to Google Sheets
 nlm export sheets <notebook-id> <artifact-id> --title "Extracted Data"

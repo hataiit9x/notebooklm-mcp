@@ -545,24 +545,24 @@ nlm studio delete <notebook-id> <artifact-id> [OPTIONS]
 Download generated artifacts to local files.
 
 ```bash
-nlm download <type> <notebook-id> <output-path> [OPTIONS]
+nlm download <type> <notebook-id> [OPTIONS]
 ```
 
 **Available types:** `audio`, `video`, `report`, `mind-map`, `slides`, `infographic`, `quiz`, `flashcards`, `data-table`
 
 | Option | Description |
 |--------|-------------|
-| `--artifact-id` | Specific artifact ID (uses latest if omitted) |
+| `--id` | Specific artifact ID (uses latest if omitted) |
 | `--format` | Output format for quiz/flashcards: `json`, `markdown`, `html` |
 | `--profile` | Use specific profile |
 
 **Examples:**
 ```bash
-nlm download audio <nb-id> podcast.mp3
-nlm download video <nb-id> video.mp4
-nlm download report <nb-id> report.md
-nlm download quiz <nb-id> quiz.html --format html
-nlm download flashcards <nb-id> cards.json --format json
+nlm download audio <nb-id> --output podcast.mp3
+nlm download video <nb-id> --output video.mp4
+nlm download report <nb-id> --output report.md
+nlm download quiz <nb-id> --output quiz.html --format html
+nlm download flashcards <nb-id> --output cards.json --format json
 ```
 
 ---

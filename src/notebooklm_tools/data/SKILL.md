@@ -317,19 +317,20 @@ nlm data-table create <id> "Extract all dates and events" --confirm
 
 #### MCP Tools
 
-Use `studio_status` to check progress. Use `download_artifact` with `artifact_type` and `output_path`. Use `export_artifact` with `export_type`: docs/sheets. Delete with `studio_delete` (requires `confirm=True`).
+Use `studio_status` to check progress (or rename with `action="rename"`). Use `download_artifact` with `artifact_type` and `output_path`. Use `export_artifact` with `export_type`: docs/sheets. Delete with `studio_delete` (requires `confirm=True`).
 
 #### CLI Commands
 ```bash
 # Check status
 nlm studio status <nb-id>                          # List all artifacts
+nlm studio status <nb-id> --full                   # Show full details (including custom prompts)
 nlm studio status <nb-id> --json                   # JSON output
 
 # Download artifacts
-nlm download audio <nb-id> podcast.mp3
-nlm download video <nb-id> video.mp4
-nlm download report <nb-id> report.md
-nlm download quiz <nb-id> quiz.json --format json
+nlm download audio <nb-id> --output podcast.mp3
+nlm download video <nb-id> --output video.mp4
+nlm download report <nb-id> --output report.md
+nlm download quiz <nb-id> --output quiz.json --format json
 
 # Export to Google Docs/Sheets
 nlm export sheets <nb-id> <artifact-id> --title "My Data Table"
@@ -340,6 +341,34 @@ nlm studio delete <nb-id> <artifact-id> --confirm
 ```
 
 **Status values**: `completed` (✓), `in_progress` (●), `failed` (✗)
+
+### Renaming Artifacts
+
+#### MCP Tools
+
+Use `studio_status` with `action="rename"`, `artifact_id`, and `new_title`.
+
+#### CLI Commands
+```bash
+nlm studio rename <artifact-id> "New Title"
+nlm rename studio <artifact-id> "New Title"  # verb-first alternative
+```
+
+### Server Info (Version Check)
+
+#### MCP Tools
+
+Use `server_info` to get version and check for updates:
+
+```python
+mcp__notebooklm-mcp__server_info()
+# Returns: version, latest_version, update_available, update_command
+```
+
+#### CLI Commands
+```bash
+nlm --version  # Shows version and update availability
+```
 
 ### 7. Chat Configuration and Notes
 
