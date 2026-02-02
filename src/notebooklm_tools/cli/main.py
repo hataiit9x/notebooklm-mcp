@@ -66,7 +66,6 @@ app = typer.Typer(
 login_app = typer.Typer(
     help="Authentication and profile management",
     rich_markup_mode="rich",
-    no_args_is_help=True,
 )
 
 # Profile management subcommands
