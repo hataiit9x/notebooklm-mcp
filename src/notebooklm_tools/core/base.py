@@ -613,7 +613,7 @@ class BaseClient:
             if not csrf_match:
                 # Save HTML for debugging
                 from pathlib import Path
-                debug_dir = Path.home() / ".notebooklm-mcp"
+                debug_dir = Path.home() / ".notebooklm-mcp-cli"
                 debug_dir.mkdir(exist_ok=True)
                 debug_path = debug_dir / "debug_page.html"
                 debug_path.write_text(html)
