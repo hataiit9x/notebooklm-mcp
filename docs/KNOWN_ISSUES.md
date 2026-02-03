@@ -125,7 +125,7 @@ The MCP auto-extracts CSRF token (`SNlM0e`) and session ID (`FdrFJe`) from the N
 
 ### Symptoms
 - `ValueError: Could not extract CSRF token from page`
-- Debug HTML saved to `~/.notebooklm-mcp/debug_page.html`
+- Debug HTML saved to `~/.notebooklm-mcp-cli/debug_page.html`
 
 ### How to fix
 If auto-extraction fails:

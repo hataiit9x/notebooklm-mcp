@@ -57,7 +57,7 @@ class AuthTokens:
 
 def get_cache_path() -> Path:
     """Get the path to the auth cache file."""
-    cache_dir = Path.home() / ".notebooklm-mcp"
+    cache_dir = Path.home() / ".notebooklm-mcp-cli"
     cache_dir.mkdir(exist_ok=True)
     return cache_dir / "auth.json"
 
@@ -180,7 +180,7 @@ def extract_session_id_from_page(html: str) -> str | None:
 #   1. Make sure Chrome is open with DevTools MCP connected
 #   2. Run: nlm login
 #   3. If not logged in, log in via the Chrome window
-#   4. Tokens are cached to ~/.notebooklm-mcp/auth.json
+#   4. Tokens are cached to ~/.notebooklm-mcp-cli/auth.json
 #   5. Start the MCP server - it will use cached tokens
 #
 # The auth flow script is separate because:

@@ -2,7 +2,6 @@
 
 Uses ~/.notebooklm-mcp-cli/ for all data (config, profiles, Chrome profile).
 Supports migration from old locations:
-- ~/.notebooklm-mcp/ (old MCP location)
 - ~/.notebooklm-tools/ (previous unified location)  
 - ~/Library/Application Support/nlm/ (old CLI location on macOS)
 """
@@ -100,14 +99,11 @@ def get_auth_cache_file() -> Path:
 
 # Old locations for Chrome profiles
 OLD_CHROME_PROFILES = [
-    Path.home() / ".notebooklm-mcp" / "chrome-profile",  # Old MCP
     Path.home() / ".nlm" / "chrome-profile",  # Old CLI
 ]
 
 # Old locations for aliases
-OLD_ALIAS_LOCATIONS = [
-    Path.home() / ".notebooklm-mcp" / "aliases.json",  # Old MCP (if any)
-]
+OLD_ALIAS_LOCATIONS: list[Path] = []
 
 # Try to add old CLI alias location (platformdirs-based)
 try:
@@ -214,11 +210,6 @@ def run_migration(dry_run: bool = True, prefer_source: str | None = None) -> lis
             # Prefer CLI location
             sources["chrome_profiles"].sort(
                 key=lambda p: 0 if ".nlm" in str(p) else 1
-            )
-        elif prefer_source == "mcp":
-            # Prefer MCP location
-            sources["chrome_profiles"].sort(
-                key=lambda p: 0 if ".notebooklm-mcp" in str(p) else 1
             )
         
         # Use the first available
