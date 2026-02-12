@@ -198,7 +198,7 @@ CLIENT_REGISTRY = {
 }
 
 
-def _complete_client(incomplete: str) -> list[str]:
+def _complete_client(ctx, param, incomplete: str) -> list[str]:
     """Shell completion for client names."""
     return [name for name in CLIENT_REGISTRY if name.startswith(incomplete)]
 
