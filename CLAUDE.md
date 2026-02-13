@@ -86,17 +86,36 @@ When API calls fail with auth errors, re-extract fresh cookies from Chrome DevTo
 
 ```
 src/notebooklm_tools/
-├── __init__.py      # Package version
-├── cli/             # CLI commands and formatting
-├── mcp/server.py    # FastMCP server with tool definitions
-├── core/client.py   # Internal API client
-├── core/constants.py # Code-name mappings (CodeMapper class)
-├── core/auth.py     # AuthManager for profile-based token caching
-├── utils/cdp.py     # Chrome DevTools Protocol for headless auth
+├── __init__.py          # Package version
+├── services/            # Shared service layer (v0.3.0+)
+│   ├── errors.py        # ServiceError, ValidationError, NotFoundError, etc.
+│   ├── chat.py          # Chat/query logic
+│   ├── downloads.py     # Artifact downloading
+│   ├── exports.py       # Google Docs/Sheets export
+│   ├── notebooks.py     # Notebook CRUD + describe
+│   ├── notes.py         # Note CRUD
+│   ├── research.py      # Research start/poll/import
+│   ├── sharing.py       # Public link, invite, status
+│   ├── sources.py       # Source add/list/sync/delete
+│   └── studio.py        # Artifact creation, status, rename, delete
+├── cli/                 # CLI commands and formatting (thin wrapper)
+├── mcp/                 # MCP server + tools (thin wrapper)
+│   ├── server.py        # FastMCP server facade
+│   └── tools/           # Modular tool definitions per domain
+├── core/                # Low-level API client (no business logic)
+│   ├── client.py        # Internal batchexecute API calls
+│   ├── constants.py     # Code-name mappings (CodeMapper class)
+│   └── auth.py          # AuthManager for profile-based token caching
 └── utils/
-    ├── config.py    # Configuration and storage paths (profile isolation)
-    └── cdp.py       # Chrome DevTools Protocol for cookie/email extraction
+    ├── config.py        # Configuration and storage paths
+    └── cdp.py           # Chrome DevTools Protocol for cookie extraction
 ```
+
+**Layering Rules (v0.3.0+):**
+- `cli/` and `mcp/` are thin wrappers: they handle UX concerns (prompts, spinners, JSON responses) and delegate to `services/`
+- `services/` contains all business logic, validation, and error handling. Returns typed dicts.
+- `cli/` and `mcp/` must NOT import from `core/` directly — always go through `services/`
+- `services/` raises `ServiceError`/`ValidationError` — never raw exceptions
 
 **Storage Structure (`~/.notebooklm-mcp-cli/`):**
 ```
@@ -223,10 +242,12 @@ When adding new features:
 1. Use Chrome DevTools MCP to capture the network request
 2. Document the RPC ID in docs/API_REFERENCE.md
 3. Add the param structure with comments
-4. Update the api_client.py with the new method
-5. Add corresponding tool in server.py
-6. Update the "Features NOT Yet Implemented" checklist
-7. Add test case to docs/MCP_TEST_PLAN.md
+4. Add the low-level API method in `core/client.py`
+5. Add business logic in the appropriate `services/*.py` module
+6. Add a thin wrapper in `mcp/tools/*.py` (for MCP) and `cli/commands/*.py` (for CLI)
+7. Write unit tests for the service function in `tests/services/`
+8. Update the "Features NOT Yet Implemented" checklist
+9. Add test case to docs/MCP_TEST_PLAN.md
 
 ## License
 

@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-02-13
+
+### Added
+- **Shared service layer** (`services/`) — 10 domain modules centralizing all business logic previously duplicated across CLI and MCP:
+  - `errors.py`: Custom error hierarchy (`ServiceError`, `ValidationError`, `NotFoundError`, `CreationError`, `ExportError`)
+  - `chat.py`: Chat configuration and notebook query logic
+  - `downloads.py`: Artifact downloading with type/format resolution
+  - `exports.py`: Google Docs/Sheets export
+  - `notebooks.py`: Notebook CRUD, describe, query consolidation
+  - `notes.py`: Note CRUD operations
+  - `research.py`: Research start, polling, and source import
+  - `sharing.py`: Public link, invite, and status management
+  - `sources.py`: Source add/list/sync/delete with type validation
+  - `studio.py`: Unified artifact creation (all 9 types), status, rename, delete
+- **372 unit tests** covering all service modules (up from 331)
+
+### Changed
+- **Architecture: strict layering** — `cli/` and `mcp/` are now thin wrappers delegating to `services/`. Neither imports from `core/` directly.
+- **MCP tools refactored** — Significant line count reductions across all tool files (e.g., studio 461→200 lines)
+- **CLI commands refactored** — Business logic extracted to services, CLI retains only UX concerns (prompts, spinners, formatting)
+- **Contributing workflow updated** — New features follow: `core/client.py` → `services/*.py` → `mcp/tools/*.py` + `cli/commands/*.py` → `tests/services/`
+
 ## [0.2.22] - 2026-02-13
 
 ### Fixed
