@@ -198,7 +198,7 @@ def launch_chrome(port: int = CDP_DEFAULT_PORT, headless: bool = False, profile_
     return _chrome_process is not None
 
 
-def terminate_chrome(process: subprocess.Popen | None = None) -> bool:
+def terminate_chrome(process: subprocess.Popen | None = None, port: int | None = None) -> bool:
     """Terminate the Chrome process launched by this module.
     
     This releases the profile lock so headless auth can work later.
@@ -208,13 +208,14 @@ def terminate_chrome(process: subprocess.Popen | None = None) -> bool:
     """
     global _chrome_process, _chrome_port, _cached_ws, _cached_ws_url
     process = process or _chrome_process
+    port = port or _chrome_port
     if process is None:
         return False
 
     # Attempt graceful shutdown via CDP to prevent "Restore Pages" warnings on next launch
     try:
-        if _cached_ws and _cached_ws_url:
-            execute_cdp_command(_cached_ws_url, "Browser.close")
+        if port or _cached_ws_url:
+            execute_cdp_command(_cached_ws_url or get_debugger_url(_chrome_port), "Browser.close")
             _cached_ws.close()
         else:
             # No fast path, use slow path
@@ -319,7 +320,7 @@ def execute_cdp_command(ws_url: str, method: str, params: dict | None = None, *,
     if retry:
         # Retry once in case of stale cached connection
         try:
-            execute_cdp_command(ws_url, method, params, retry=False)
+            return execute_cdp_command(ws_url, method, params, retry=False)
         except Exception:
             # Try again without the cached connection
             _cached_ws = _cached_ws_url = None
@@ -777,4 +778,4 @@ def run_headless_auth(
         # IMPORTANT: Only terminate Chrome if we launched it
         # Don't terminate if we connected to existing Chrome instance
         if chrome_process and not chrome_was_running:
-            terminate_chrome(chrome_process)
+            terminate_chrome(chrome_process, port)
