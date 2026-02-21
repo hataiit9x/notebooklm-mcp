@@ -123,14 +123,14 @@ def is_profile_locked(profile_name: str = "default") -> bool:
     return lock_file.exists()
 
 
-def find_existing_nlm_chrome(port_range: range = CDP_PORT_RANGE) -> int | None:
+def find_existing_nlm_chrome(port_range: range = CDP_PORT_RANGE) -> tuple[int | None, str | None]:
     """Find an existing NLM Chrome instance on any port in range.
     
     Scans the port range looking for a Chrome DevTools endpoint.
     This allows reconnecting to an existing auth Chrome window.
     
     Returns:
-        The port number if found, None otherwise
+        The port number and debugger URL if found, (None, None) otherwise
     """
     import socket
     for port in port_range:
@@ -145,15 +145,11 @@ def find_existing_nlm_chrome(port_range: range = CDP_PORT_RANGE) -> int | None:
         except OSError:
             # Port is in use, let's see if it's a Chrome DevTools endpoint
             pass
-            
-        try:
-            response = httpx_client.get(f"http://localhost:{port}/json/version", timeout=2)
-            if response.status_code == 200:
-                # Found a Chrome DevTools endpoint
-                return port
-        except Exception:
-            continue
-    return None
+
+        debugger_url = get_debugger_url(port, timeout=2)
+        if debugger_url:
+            return port, debugger_url
+    return None, None
 
 
 def launch_chrome_process(port: int = CDP_DEFAULT_PORT, headless: bool = False, profile_name: str = "default") -> subprocess.Popen | None:
@@ -483,12 +479,9 @@ def extract_cookies_via_cdp(
     """
     # Check if Chrome is running with debugging
     # First, try to find an existing instance on any port in our range
-    existing_port = find_existing_nlm_chrome()
+    existing_port, debugger_url = find_existing_nlm_chrome()
     if existing_port:
         port = existing_port
-        debugger_url = get_debugger_url(port)
-    else:
-        debugger_url = None
     
     if not debugger_url and auto_launch:
         if is_profile_locked(profile_name):
