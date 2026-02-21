@@ -202,7 +202,7 @@ def launch_chrome(port: int = CDP_DEFAULT_PORT, headless: bool = False, profile_
     return _chrome_process is not None
 
 
-def terminate_chrome() -> bool:
+def terminate_chrome(process: subprocess.Popen | None = None) -> bool:
     """Terminate the Chrome process launched by this module.
     
     This releases the profile lock so headless auth can work later.
@@ -211,38 +211,40 @@ def terminate_chrome() -> bool:
         True if Chrome was terminated, False if no process to terminate.
     """
     global _chrome_process, _chrome_port, _cached_ws, _cached_ws_url
-    if _chrome_process is None:
+    process = process or _chrome_process
+    if process is None:
         return False
-        
-    # Attempt graceful shutdown via CDP to prevent "Restore Pages" warnings on next launch
-    if _chrome_port:
-        try:
-            ws_url = get_debugger_url(_chrome_port)
-            if ws_url:
-                execute_cdp_command(ws_url, "Browser.close")
-        except Exception:
-            pass # Ignore connection drops or failures during close
 
-    if _cached_ws:
-        _cached_ws.close()
+    # Attempt graceful shutdown via CDP to prevent "Restore Pages" warnings on next launch
+    try:
+        if _cached_ws and _cached_ws_url:
+            execute_cdp_command(_cached_ws_url, "Browser.close")
+            _cached_ws.close()
+        else:
+            # No fast path, use slow path
+            process.terminate()
+    except Exception:
+        pass # Ignore connection drops or failures during close
+
     _cached_ws = _cached_ws_url = None
 
     try:
         # Wait up to 5 seconds for the graceful shutdown to finish
-        _chrome_process.wait(timeout=5)
+        process.wait(timeout=5)
     except Exception:
         # If it didn't close in time, force terminate
         try:
-            _chrome_process.terminate()
-            _chrome_process.wait(timeout=5)
+            process.terminate()
+            process.wait(timeout=5)
         except Exception:
             try:
-                _chrome_process.kill()
+                process.kill()
             except Exception:
                 pass
-    
-    _chrome_process = None
-    _chrome_port = None
+
+    if process == _chrome_process:
+        _chrome_process = None
+        _chrome_port = None
     return True
 
 
@@ -775,25 +777,4 @@ def run_headless_auth(
         # IMPORTANT: Only terminate Chrome if we launched it
         # Don't terminate if we connected to existing Chrome instance
         if chrome_process and not chrome_was_running:
-            # Try graceful shutdown via CDP first
-            try:
-                ws_url = get_debugger_url(port)
-                if ws_url:
-                    execute_cdp_command(ws_url, "Browser.close")
-            except Exception:
-                pass
-
-            try:
-                # Wait for graceful shutdown
-                chrome_process.wait(timeout=5)
-            except Exception:
-                # Fallback to terminate
-                try:
-                    chrome_process.terminate()
-                    chrome_process.wait(timeout=5)
-                except Exception:
-                    # Force kill if terminate didn't work
-                    try:
-                        chrome_process.kill()
-                    except Exception:
-                        pass
+            terminate_chrome(chrome_process)
