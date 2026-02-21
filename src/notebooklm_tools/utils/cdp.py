@@ -248,14 +248,18 @@ def terminate_chrome(process: subprocess.Popen | None = None) -> bool:
     return True
 
 
-def get_debugger_url(port: int = CDP_DEFAULT_PORT) -> str | None:
+def get_debugger_url(port: int = CDP_DEFAULT_PORT, *, tries: int = 1, timeout: int = 5) -> str | None:
     """Get the WebSocket debugger URL for Chrome."""
-    try:
-        response = httpx_client.get(f"http://localhost:{port}/json/version", timeout=5)
-        data = response.json()
-        return data.get("webSocketDebuggerUrl")
-    except Exception:
-        return None
+    for attempt in range(tries):
+        try:
+            response = httpx_client.get(f"http://localhost:{port}/json/version", timeout=timeout)
+            data = response.json()
+            return data.get("webSocketDebuggerUrl")
+        except Exception:
+            # Don't sleep on the last try
+            if attempt < tries - 1:
+                time.sleep(1)
+    return None
 
 
 def get_pages_by_cdp_url(cdp_http_url: str) -> list[dict]:
@@ -515,7 +519,7 @@ def extract_cookies_via_cdp(
                 hint="Try 'nlm login --manual' to import cookies from a file.",
             )
         
-        debugger_url = get_debugger_url(port)
+        debugger_url = get_debugger_url(port, tries=5)
     
     if not debugger_url:
         raise AuthenticationError(
@@ -720,12 +724,7 @@ def run_headless_auth(
                 return None
 
             # Wait for Chrome debugger to be ready
-            for _ in range(5):  # Try up to 5 times
-                debugger_url = get_debugger_url(port)
-                if debugger_url:
-                    break
-                time.sleep(1)
-
+            debugger_url = get_debugger_url(port, tries=5)
             if not debugger_url:
                 return None
         
