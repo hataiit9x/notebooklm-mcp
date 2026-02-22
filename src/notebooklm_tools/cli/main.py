@@ -111,6 +111,10 @@ def login_callback(
         False, "--force",
         help="Force overwrite even if profile has credentials for a different account",
     ),
+    clear: bool = typer.Option(
+        False, "--clear",
+        help="Delete the localized Chrome profile data before logging in, to switch Google accounts",
+    ),
 ) -> None:
     """
     Authenticate with NotebookLM.
@@ -237,7 +241,7 @@ def login_callback(
                 (chrome_profile / "Default").exists() or (chrome_profile / "Local State").exists()
             )
 
-            if not profile_exists:
+            if not profile_exists and not clear:
                 sources = check_migration_sources()
                 if sources["chrome_profiles"]:
                     console.print("[yellow]Found Chrome profile from legacy installation![/yellow]")
@@ -256,6 +260,7 @@ def login_callback(
                 wait_for_login=True,
                 login_timeout=300,
                 profile_name=profile,
+                clear_profile=clear,
             )
             launched_local_chrome = True
 
@@ -523,12 +528,7 @@ def main(
         
         # Check for updates when showing version
         update_available, latest = check_for_updates()
-        if update_available and latest:
-            console.print(
-                f"\n[dim]🔔 Update available:[/dim] [green]{latest}[/green]. "
-                f"[dim]Run[/dim] [bold]uv tool upgrade notebooklm-mcp-cli[/bold] [dim]to update.[/dim]"
-            )
-        else:
+        if not (update_available and latest):
             console.print(f"[dim]You are on the latest version.[/dim]")
         raise typer.Exit()
     
@@ -544,6 +544,7 @@ def main(
 
 def cli_main():
     """Main CLI entry point with error handling."""
+    import sys
     try:
         app()
     except Exception as e:
@@ -560,14 +561,14 @@ def cli_main():
             console.print(f"\n[red]✗ Authentication Error[/red]")
             console.print(f"  {str(e)}")
             console.print(f"\n[yellow]→[/yellow] Run [cyan]nlm login[/cyan] to re-authenticate\n")
-            raise typer.Exit(1)
+            sys.exit(1)
 
         # Handle other NLM errors cleanly
         elif isinstance(e, NLMError):
             console.print(f"\n[red]✗ Error:[/red] {e.message}")
             if e.hint:
                 console.print(f"[dim]{e.hint}[/dim]\n")
-            raise typer.Exit(1)
+            sys.exit(1)
 
         # For unexpected errors, show the traceback
         else:
