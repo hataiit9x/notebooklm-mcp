@@ -310,6 +310,20 @@ nlm source sync <notebook-id> [OPTIONS]
 | `--source-ids` | Specific source IDs to sync (comma-separated) |
 | `--profile` | Use specific profile |
 
+### nlm source rename
+
+Rename a source.
+
+```bash
+nlm source rename <source-id> <new-title> [OPTIONS]
+nlm rename source <source-id> <new-title> [OPTIONS]  # verb-first alias
+```
+
+| Option | Description |
+|--------|-------------|
+| `--notebook` | **Required** - Notebook ID containing the source |
+| `--profile` | Use specific profile |
+
 ### nlm source delete
 
 Delete a source permanently.

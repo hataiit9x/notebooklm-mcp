@@ -148,6 +148,7 @@ src/notebooklm_tools/
 | `notebook_query` | Ask questions (AI answers!) |
 | `source_list_drive` | List sources with types, check Drive freshness |
 | `source_sync_drive` | Sync stale Drive sources (REQUIRES confirmation) |
+| `source_rename` | Rename a source in a notebook |
 | `source_delete` | Delete a source from notebook (REQUIRES confirmation) |
 | `research_start` | Start Web or Drive research to discover sources |
 | `research_status` | Check research progress and get results |
