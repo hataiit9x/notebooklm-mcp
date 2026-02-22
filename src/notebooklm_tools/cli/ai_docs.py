@@ -101,7 +101,7 @@ nlm status artifacts <notebook>
 | `nlm quiz` | Create quizzes (create) |
 | `nlm flashcards` | Create flashcards (create) |
 | `nlm mindmap` | Create mind maps (create) |
-| `nlm slides` | Create slide decks (create) |
+| `nlm slides` | Create and revise slide decks (create, revise) |
 | `nlm infographic` | Create infographics (create) |
 | `nlm video` | Create video overviews (create) |
 | `nlm data-table` | Create data tables (create) |
@@ -417,6 +417,15 @@ nlm create slides <notebook-id> --confirm
 nlm create slides <notebook-id> --length short --format detailed_deck --confirm
 ```
 
+#### Revise Slides
+
+**Noun-First:**
+```bash
+nlm slides revise <artifact-id> --slide '1 Make the title larger' --confirm
+nlm slides revise <artifact-id> --slide '1 Fix title' --slide '3 Remove image' --confirm
+# Creates a NEW slide deck with revisions applied. Original is not modified.
+```
+
 #### Infographic
 
 **Noun-First:**
@@ -471,6 +480,7 @@ nlm studio status <notebook-id>                    # List all artifacts + status
 nlm studio status <notebook-id> --json             # JSON output
 nlm studio status <notebook-id> --full             # All details
 nlm studio delete <notebook-id> <artifact-id> --confirm  # Delete artifact
+nlm slides revise <artifact-id> --slide '1 instruction' --confirm  # Revise slides
 ```
 
 **Verb-First:**
