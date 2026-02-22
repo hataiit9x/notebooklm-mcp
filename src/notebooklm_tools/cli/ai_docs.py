@@ -501,7 +501,8 @@ nlm download audio <notebook-id> --output podcast.mp3          # Download latest
 nlm download video <notebook-id>                               # Download latest video (default filename)
 nlm download report <notebook-id> --output report.md           # Download report
 nlm download mind-map <notebook-id>                            # Download mind map
-nlm download slide-deck <notebook-id>                          # Download slides
+nlm download slide-deck <notebook-id>                          # Download slides (PDF)
+nlm download slide-deck <notebook-id> --format pptx            # Download slides (PPTX)
 nlm download infographic <notebook-id>                         # Download infographic
 nlm download data-table <notebook-id>                          # Download data table
 ```
@@ -857,7 +858,8 @@ nlm download audio <notebook-id> --id <audio-id>
 nlm download video <notebook-id> --id <video-id>
 nlm download report <notebook-id> --id <report-id>
 nlm download mind-map <notebook-id> --id <mindmap-id>
-nlm download slide-deck <notebook-id> --id <slides-id>
+nlm download slide-deck <notebook-id> --id <slides-id>             # PDF (default)
+nlm download slide-deck <notebook-id> --id <slides-id> --format pptx  # PPTX
 nlm download infographic <notebook-id> --id <infographic-id>
 ```
 

@@ -343,6 +343,8 @@ nlm studio status <nb-id> --json                   # JSON output
 nlm download audio <nb-id> --output podcast.mp3
 nlm download video <nb-id> --output video.mp4
 nlm download report <nb-id> --output report.md
+nlm download slide-deck <nb-id> --output slides.pdf           # PDF (default)
+nlm download slide-deck <nb-id> --output slides.pptx --format pptx  # PPTX
 nlm download quiz <nb-id> --output quiz.json --format json
 
 # Export to Google Docs/Sheets
