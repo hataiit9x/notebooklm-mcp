@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [Unreleased / 0.3.21]
+
+### Fixed
+- **Version mismatch (Patch)** — Bump internal `__version__` string in `__init__.py` to correctly report as `0.3.21` (was omitted in `0.3.20` release).
 
 ## [0.3.20] - 2026-03-04
 
